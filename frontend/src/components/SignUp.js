@@ -14,6 +14,8 @@ const SignUp = () => {
     name: '',
     alias: '',
     email: '',
+    dateOfBirth: '',
+    address: '',
     password: '',
     confirmPassword: ''
   });
@@ -48,6 +50,8 @@ const SignUp = () => {
         name: formData.name,
         alias: formData.alias,
         email: formData.email,
+        dateOfBirth: formData.dateOfBirth,
+        address: formData.address,
         password: formData.password,
         confirmPassword: formData.confirmPassword
       });
@@ -68,7 +72,7 @@ const SignUp = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 font-sans bg-cover bg-center"
       style={{ backgroundImage: `url('/bright-ideas-bg.jpg')` }}>
-      <div className="w-full max-w-6xl flex h-[650px] bg-white/10 rounded-3xl shadow-2xl overflow-hidden backdrop-filter backdrop-blur-sm border border-white/20">
+      <div className="w-full max-w-6xl flex h-auto lg:h-[750px] bg-white/10 rounded-3xl shadow-2xl overflow-hidden backdrop-filter backdrop-blur-sm border border-white/20">
 
         {/* Partie gauche */}
         <div className="relative hidden lg:flex w-1/2 items-end p-12 text-white">
@@ -90,45 +94,76 @@ const SignUp = () => {
             <p className="text-gray-500 mb-6">Enter your personal details to get started</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Nom */}
-              <div>
-                <label htmlFor="name" className="text-sm font-semibold text-gray-600">Nom</label>
-                <input
-                  id="name"
-                  type="text"
-                  placeholder="Enter your full name"
-                  required
-                  value={formData.name}
-                  onChange={handleChange}
-                  disabled={loading}
-                  className="w-full p-2 bg-transparent border-b-2 border-gray-200 focus:outline-none focus:border-gray-800 transition-colors disabled:opacity-50"
-                />
+              {/* Nom et Alias */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="name" className="text-sm font-semibold text-gray-600">Nom</label>
+                  <input
+                    id="name"
+                    type="text"
+                    placeholder="Enter your full name"
+                    required
+                    value={formData.name}
+                    onChange={handleChange}
+                    disabled={loading}
+                    className="w-full p-2 bg-transparent border-b-2 border-gray-200 focus:outline-none focus:border-gray-800 transition-colors disabled:opacity-50"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="alias" className="text-sm font-semibold text-gray-600">Alias</label>
+                  <input
+                    id="alias"
+                    type="text"
+                    placeholder="Enter a username"
+                    required
+                    value={formData.alias}
+                    onChange={handleChange}
+                    disabled={loading}
+                    className="w-full p-2 bg-transparent border-b-2 border-gray-200 focus:outline-none focus:border-gray-800 transition-colors disabled:opacity-50"
+                  />
+                </div>
               </div>
 
-              {/* Alias */}
-              <div>
-                <label htmlFor="alias" className="text-sm font-semibold text-gray-600">Alias</label>
-                <input
-                  id="alias"
-                  type="text"
-                  placeholder="Enter a username"
-                  required
-                  value={formData.alias}
-                  onChange={handleChange}
-                  disabled={loading}
-                  className="w-full p-2 bg-transparent border-b-2 border-gray-200 focus:outline-none focus:border-gray-800 transition-colors disabled:opacity-50"
-                />
+              {/* Email et Adresse */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="email" className="text-sm font-semibold text-gray-600">Email</label>
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
+                    disabled={loading}
+                    className="w-full p-2 bg-transparent border-b-2 border-gray-200 focus:outline-none focus:border-gray-800 transition-colors disabled:opacity-50"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="address" className="text-sm font-semibold text-gray-600">Adresse</label>
+                  <input
+                    id="address"
+                    type="text"
+                    placeholder="Enter your address"
+                    required
+                    value={formData.address}
+                    onChange={handleChange}
+                    disabled={loading}
+                    className="w-full p-2 bg-transparent border-b-2 border-gray-200 focus:outline-none focus:border-gray-800 transition-colors disabled:opacity-50"
+                  />
+                </div>
               </div>
 
-              {/* Email */}
+              {/* Date de naissance */}
               <div>
-                <label htmlFor="email" className="text-sm font-semibold text-gray-600">Email</label>
+                <label htmlFor="dateOfBirth" className="text-sm font-semibold text-gray-600">Date de naissance</label>
                 <input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
+                  id="dateOfBirth"
+                  type="date"
                   required
-                  value={formData.email}
+                  value={formData.dateOfBirth}
                   onChange={handleChange}
                   disabled={loading}
                   className="w-full p-2 bg-transparent border-b-2 border-gray-200 focus:outline-none focus:border-gray-800 transition-colors disabled:opacity-50"

@@ -9,6 +9,8 @@ const API_BASE_URL = 'http://localhost:5000/api/auth';
  * @param {string} userData.name - Nom complet
  * @param {string} userData.alias - Nom d'utilisateur unique
  * @param {string} userData.email - Email
+ * @param {string} userData.dateOfBirth - Date de naissance
+ * @param {string} userData.address - Adresse
  * @param {string} userData.password - Mot de passe
  * @param {string} userData.confirmPassword - Confirmation du mot de passe
  * @returns {Promise<Object>} Réponse du serveur avec les données utilisateur
@@ -25,6 +27,8 @@ export const signupUser = async (userData) => {
         name: userData.name,
         alias: userData.alias,
         email: userData.email,
+        dateOfBirth: userData.dateOfBirth,
+        address: userData.address,
         password: userData.password,
         confirmPassword: userData.confirmPassword
       }),

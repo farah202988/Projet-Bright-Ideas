@@ -22,10 +22,24 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true
     },
+    dateOfBirth: {
+      type: Date,
+      required: true
+    },
+    address: {
+      type: String,
+      required: true,
+      trim: true
+    },
     password: {
       type: String,
       required: true,
       minlength: 6
+    },
+    profilePhoto: {
+      type: String,
+      default: null,
+      // Stocke la photo en base64 ou URL
     },
     role: {
       type: String,

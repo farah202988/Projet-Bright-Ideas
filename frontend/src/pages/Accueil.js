@@ -1,111 +1,208 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 const Accueil = () => {
   const [user, setUser] = useState(null);
-  const [ideas, setIdeas] = useState([]);
-  const [newIdea, setNewIdea] = useState('');
-  const [showLikedBy, setShowLikedBy] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [editingIdea, setEditingIdea] = useState(null);
-  const [editText, setEditText] = useState('');
-  const [userStats, setUserStats] = useState({ idees: 0, likes: 0 });
-  const navigate = useNavigate();
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  // States pour l'édition de profil
+  const [editData, setEditData] = useState({
+    name: '',
+    alias: '',
+    email: '',
+    dateOfBirth: '',
+    address: '',
+    profilePhoto: null,
+  });
+
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+    showOld: false,
+    showNew: false,
+    showConfirm: false,
+  });
+
+  const [activeTab, setActiveTab] = useState('info');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (!storedUser) {
-      navigate('/signin');
+      window.location.href = '/signin';
       return;
     }
 
     const userData = JSON.parse(storedUser);
     
     if (userData.role === 'admin') {
-      navigate('/admin');
+      window.location.href = '/admin';
       return;
     }
 
     setUser(userData);
-    
-    const storedIdeas = localStorage.getItem('ideas');
-    if (storedIdeas) {
-      setIdeas(JSON.parse(storedIdeas));
-    }
-  }, [navigate]);
-
-  useEffect(() => {
-    if (user && ideas.length > 0) {
-      const userIdeas = ideas.filter(idea => idea.authorId === user._id || idea.authorId === user.id);
-      const totalLikes = userIdeas.reduce((sum, idea) => sum + idea.likes, 0);
-      setUserStats({ idees: userIdeas.length, likes: totalLikes });
-    }
-  }, [user, ideas]);
+    setEditData({
+      name: userData.name || '',
+      alias: userData.alias || '',
+      email: userData.email || '',
+      dateOfBirth: userData.dateOfBirth ? userData.dateOfBirth.split('T')[0] : '',
+      address: userData.address || '',
+      profilePhoto: userData.profilePhoto || null,
+    });
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
-    navigate('/signin');
+    window.location.href = '/signin';
   };
 
-  const handleAddIdea = () => {
-    if (!newIdea.trim()) return;
-
-    const idea = {
-      id: Date.now(),
-      content: newIdea,
-      author: user.name || user.nom,
-      alias: user.alias,
-      authorId: user._id || user.id,
-      email: user.email,
-      likes: 0,
-      likedBy: [],
-      createdAt: new Date().toLocaleDateString('fr-FR'),
-    };
-
-    const updatedIdeas = [idea, ...ideas];
-    setIdeas(updatedIdeas);
-    localStorage.setItem('ideas', JSON.stringify(updatedIdeas));
-    setNewIdea('');
+  // Fonctions pour l'édition de profil
+  const handleInfoChange = (e) => {
+    setEditData({ ...editData, [e.target.id]: e.target.value });
   };
 
-  const handleLike = (id) => {
-    const updatedIdeas = ideas.map(idea => {
-      if (idea.id === id && !idea.likedBy.includes(user.email)) {
-        return {
-          ...idea,
-          likes: idea.likes + 1,
-          likedBy: [...idea.likedBy, user.email]
-        };
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditData({ ...editData, profilePhoto: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePasswordChange = (e) => {
+    setPasswordData({ ...passwordData, [e.target.id]: e.target.value });
+  };
+
+  const handleSaveInfo = async () => {
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    try {
+      const bodyData = {
+        name: editData.name,
+        alias: editData.alias,
+        email: editData.email,
+        dateOfBirth: editData.dateOfBirth,
+        address: editData.address,
+      };
+      
+      // Ajouter la photo si elle a été changée et qu'elle est en base64
+      if (editData.profilePhoto && editData.profilePhoto.startsWith('data:')) {
+        bodyData.profilePhoto = editData.profilePhoto;
       }
-      return idea;
-    });
-    setIdeas(updatedIdeas);
-    localStorage.setItem('ideas', JSON.stringify(updatedIdeas));
+
+      console.log('Envoi des données:', bodyData);
+
+      const response = await fetch('http://localhost:5000/api/auth/update-profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(bodyData),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || "Erreur lors de la mise à jour");
+      }
+
+      setSuccess('Informations mises à jour avec succès !');
+      setLoading(false);
+      
+      const updatedUser = {
+        ...data.user,
+        profilePhoto: editData.profilePhoto || data.user.profilePhoto
+      };
+      
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      setTimeout(() => {
+        setShowEditModal(false);
+        setShowProfileModal(false);
+      }, 1500);
+
+    } catch (err) {
+      setError(err.message || "Erreur lors de la mise à jour");
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (id) => {
-    const updatedIdeas = ideas.filter(idea => idea.id !== id);
-    setIdeas(updatedIdeas);
-    localStorage.setItem('ideas', JSON.stringify(updatedIdeas));
-  };
+  const handleChangePassword = async () => {
+    setError('');
+    setSuccess('');
 
-  const handleEditIdea = (idea) => {
-    setEditingIdea(idea.id);
-    setEditText(idea.content);
-  };
+    if (!passwordData.oldPassword) {
+      setError('Veuillez saisir votre ancien mot de passe');
+      return;
+    }
 
-  const handleSaveEdit = (id) => {
-    const updatedIdeas = ideas.map(idea => 
-      idea.id === id ? { ...idea, content: editText } : idea
-    );
-    setIdeas(updatedIdeas);
-    localStorage.setItem('ideas', JSON.stringify(updatedIdeas));
-    setEditingIdea(null);
-    setEditText('');
-  };
+    if (!passwordData.newPassword) {
+      setError('Veuillez saisir votre nouveau mot de passe');
+      return;
+    }
 
-  const userIdeas = ideas.filter(idea => idea.authorId === (user?._id || user?.id));
-  const sortedIdeas = [...ideas].sort((a, b) => b.likes - a.likes);
+    if (passwordData.newPassword.length < 8) {
+      setError('Le nouveau mot de passe doit contenir au moins 8 caractères');
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setError('Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/change-password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          oldPassword: passwordData.oldPassword,
+          newPassword: passwordData.newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || "Erreur lors du changement de mot de passe");
+      }
+
+      setSuccess('Mot de passe changé avec succès !');
+      setPasswordData({
+        oldPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+        showOld: false,
+        showNew: false,
+        showConfirm: false,
+      });
+      setLoading(false);
+
+      setTimeout(() => {
+        setShowEditModal(false);
+        setShowProfileModal(false);
+      }, 1500);
+
+    } catch (err) {
+      setError(err.message || "Erreur lors du changement de mot de passe");
+      setLoading(false);
+    }
+  };
 
   if (!user) {
     return (
@@ -133,8 +230,12 @@ const Accueil = () => {
               onClick={() => setShowProfileModal(true)}
               className="flex items-center gap-2 text-gray-700 hover:text-gray-900 font-medium cursor-pointer"
             >
-              <span className="w-8 h-8 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                {(user.name || user.nom || '?').charAt(0).toUpperCase()}
+              <span className="w-8 h-8 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden">
+                {user.profilePhoto ? (
+                  <img src={user.profilePhoto} alt={user.alias} className="w-full h-full object-cover" />
+                ) : (
+                  (user.name || user.nom || '?').charAt(0).toUpperCase()
+                )}
               </span>
               {user.alias}
             </button>
@@ -144,34 +245,22 @@ const Accueil = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar Gauche - Profil */}
+          {/* Sidebar Gauche */}
           <aside className="lg:col-span-1">
             <div className="bg-white rounded-3xl border border-gray-200 p-6 sticky top-24 text-center cursor-pointer hover:shadow-lg transition" onClick={() => setShowProfileModal(true)}>
-              {/* Cover Image */}
               <div className="w-full h-24 bg-gradient-to-r from-purple-300 via-blue-300 to-pink-300 rounded-2xl mb-4"></div>
 
-              {/* Avatar */}
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-2xl mx-auto -mt-8 mb-4 border-4 border-white">
-                {(user.name || user.nom || '?').charAt(0).toUpperCase()}
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-2xl mx-auto -mt-8 mb-4 border-4 border-white overflow-hidden">
+                {user.profilePhoto ? (
+                  <img src={user.profilePhoto} alt={user.alias} className="w-full h-full object-cover" />
+                ) : (
+                  (user.name || user.nom || '?').charAt(0).toUpperCase()
+                )}
               </div>
 
-              {/* Info */}
               <h3 className="font-bold text-gray-900 text-lg">{user.name || user.nom}</h3>
               <p className="text-gray-500 text-sm mb-6">@{user.alias}</p>
 
-              {/* Stats en ligne */}
-              <div className="grid grid-cols-2 gap-4 mb-6 border-b border-gray-200 pb-4">
-                <div>
-                  <p className="text-xl font-bold text-gray-900">{userStats.idees}</p>
-                  <p className="text-xs text-gray-500">Postes</p>
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-gray-900">{userStats.likes}</p>
-                  <p className="text-xs text-gray-500">Likes</p>
-                </div>
-              </div>
-
-              {/* Button */}
               <button 
                 onClick={() => setShowProfileModal(true)}
                 className="w-full bg-blue-500 text-white font-semibold py-2 rounded-full hover:bg-blue-600 transition">
@@ -180,115 +269,11 @@ const Accueil = () => {
             </div>
           </aside>
 
-          {/* Centre - Feed */}
+          {/* Centre - Contenu Futur */}
           <main className="lg:col-span-2">
-            {/* Create Idea */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-4">
-              <div className="flex gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold text-sm">
-                  {(user.name || user.nom || '?').charAt(0).toUpperCase()}
-                </div>
-                <textarea
-                  value={newIdea}
-                  onChange={(e) => setNewIdea(e.target.value)}
-                  placeholder="Qu'avez-vous en tête ?"
-                  className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm"
-                  rows="1"
-                />
-              </div>
-              <div className="flex gap-3 mt-3 px-3 text-gray-500 text-sm border-b border-gray-200 pb-3">
-                <button className="hover:text-blue-500">🖼️ Image/Vidéo</button>
-                <button className="hover:text-blue-500">📎 Attachment</button>
-                <button className="hover:text-blue-500">🔴 Live</button>
-                <button className="hover:text-blue-500">#️⃣ Hashtag</button>
-                <button className="hover:text-blue-500">@️ Mention</button>
-              </div>
-              <div className="flex justify-end mt-3">
-                <button
-                  onClick={handleAddIdea}
-                  disabled={!newIdea.trim()}
-                  className="px-6 py-2 bg-blue-500 text-white font-semibold rounded-full hover:bg-blue-600 transition disabled:bg-gray-300 disabled:cursor-not-allowed text-sm"
-                >
-                  Partager l'idée
-                </button>
-              </div>
-            </div>
-
-            {/* Ideas Feed */}
-            <div className="space-y-4">
-              {sortedIdeas.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
-                  <p className="text-gray-500">Aucune idée pour le moment.</p>
-                  <p className="text-gray-400 text-sm">Soyez le premier à partager une idée brillante !</p>
-                </div>
-              ) : (
-                sortedIdeas.map(idea => (
-                  <div key={idea.id} className="bg-white rounded-2xl border border-gray-200 p-4 hover:border-gray-300 transition">
-                    {/* Header */}
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                          {(idea.author || '?').charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-gray-900 text-sm">{idea.author}</h4>
-                            <span className="text-gray-500 text-sm">@{idea.alias}</span>
-                          </div>
-                          <p className="text-xs text-gray-500">{idea.createdAt}</p>
-                        </div>
-                      </div>
-                      {idea.authorId === (user._id || user.id) && (
-                        <button
-                          onClick={() => handleDelete(idea.id)}
-                          className="text-gray-400 hover:text-red-500 text-lg"
-                        >
-                          ⋮
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <p className="text-gray-900 mb-3 text-sm leading-relaxed">{idea.content}</p>
-
-                    {/* Actions */}
-                    <div className="flex gap-6 pt-3 text-gray-500 text-sm border-t border-gray-100">
-                      <button
-                        onClick={() => handleLike(idea.id)}
-                        disabled={idea.likedBy.includes(user.email)}
-                        className={`flex items-center gap-2 hover:text-red-500 transition ${
-                          idea.likedBy.includes(user.email) ? 'text-red-500' : ''
-                        } disabled:cursor-not-allowed`}
-                      >
-                        <span className="text-lg">❤️</span>
-                        <span>{idea.likes}</span>
-                      </button>
-
-                      {idea.likedBy.length > 0 && (
-                        <button
-                          onClick={() => setShowLikedBy(showLikedBy === idea.id ? null : idea.id)}
-                          className="flex items-center gap-2 hover:text-blue-500 transition"
-                        >
-                          <span className="text-lg">👁️</span>
-                          <span>Voir</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Liked By */}
-                    {showLikedBy === idea.id && (
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <p className="text-xs font-semibold text-gray-700 mb-2">Aimé par:</p>
-                        <div className="space-y-1">
-                          {idea.likedBy.map((email, idx) => (
-                            <div key={idx} className="text-xs text-gray-600">👤 {email}</div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))
-              )}
+            <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
+              <p className="text-2xl font-bold text-gray-900 mb-2">📝 Contenu futur</p>
+              <p className="text-gray-500">La section de publication d'idées sera disponible très bientôt !</p>
             </div>
           </main>
 
@@ -302,14 +287,13 @@ const Accueil = () => {
       </div>
 
       {/* Profile Modal */}
-      {showProfileModal && (
+      {showProfileModal && !showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
           <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-800">
-            {/* Header */}
             <div className="sticky top-0 bg-gray-900 border-b border-gray-800 p-6 flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold text-white">Profile</h1>
-                <p className="text-gray-400 text-sm">View all your profile details here.</p>
+                <p className="text-gray-400 text-sm">Consultez vos informations de profil ici.</p>
               </div>
               <button
                 onClick={() => setShowProfileModal(false)}
@@ -323,16 +307,18 @@ const Accueil = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 {/* Left Column - User Info */}
                 <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8">
-                  {/* Avatar */}
                   <div className="flex flex-col items-center mb-6">
-                    <div className="w-32 h-32 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-5xl border-4 border-gray-700 mb-6">
-                      {(user.name || user.nom || '?').charAt(0).toUpperCase()}
+                    <div className="w-32 h-32 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-5xl border-4 border-gray-700 mb-6 overflow-hidden">
+                      {user.profilePhoto ? (
+                        <img src={user.profilePhoto} alt={user.alias} className="w-full h-full object-cover" />
+                      ) : (
+                        (user.name || user.nom || '?').charAt(0).toUpperCase()
+                      )}
                     </div>
                     <h2 className="text-2xl font-bold text-white text-center">{user.name || user.nom}</h2>
                     <p className="text-green-400 text-sm mb-4">Premium User</p>
                   </div>
 
-                  {/* User Details */}
                   <div className="space-y-4 mb-6">
                     <div className="flex items-start gap-3">
                       <span className="text-gray-400">@</span>
@@ -348,6 +334,21 @@ const Accueil = () => {
                         <p className="text-white font-medium break-all">{user.email}</p>
                       </div>
                     </div>
+                    {user.dateOfBirth && (
+                      <div className="flex items-start gap-3">
+                        <span className="text-gray-400">🎂</span>
+                        <div>
+                          <p className="text-xs text-gray-500">Date de naissance</p>
+                          <p className="text-white font-medium">
+                            {new Date(user.dateOfBirth).toLocaleDateString('fr-FR', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     {user.address && (
                       <div className="flex items-start gap-3">
                         <span className="text-gray-400">📍</span>
@@ -359,19 +360,13 @@ const Accueil = () => {
                     )}
                   </div>
 
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-4 mb-6 pt-6 border-t border-gray-700">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-white">{userStats.idees}</p>
-                      <p className="text-xs text-gray-400">Postes</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-white">{userStats.likes}</p>
-                      <p className="text-xs text-gray-400">Likes</p>
-                    </div>
-                  </div>
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="w-full bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 transition mb-3"
+                  >
+                    ✏️ Modifier mes informations
+                  </button>
 
-                  {/* Logout Button */}
                   <button
                     onClick={handleLogout}
                     className="w-full bg-red-600 text-white font-semibold py-3 rounded-lg hover:bg-red-700 transition"
@@ -380,90 +375,274 @@ const Accueil = () => {
                   </button>
                 </div>
 
-                {/* Right Column - Stats Details */}
-                <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8">
-                  <h3 className="text-xl font-bold text-white mb-6">Statistiques</h3>
-                  <div className="space-y-4">
-                    <div className="p-4 bg-gray-700 rounded-lg">
-                      <p className="text-gray-300 text-sm">Idées Publiées</p>
-                      <p className="text-3xl font-bold text-blue-400 mt-2">{userStats.idees}</p>
-                    </div>
-                    <div className="p-4 bg-gray-700 rounded-lg">
-                      <p className="text-gray-300 text-sm">Likes Reçus</p>
-                      <p className="text-3xl font-bold text-pink-400 mt-2">{userStats.likes}</p>
-                    </div>
-                    <div className="p-4 bg-gray-700 rounded-lg">
-                      <p className="text-gray-300 text-sm">Moyenne de Likes</p>
-                      <p className="text-3xl font-bold text-green-400 mt-2">
-                        {userStats.idees > 0 ? (userStats.likes / userStats.idees).toFixed(1) : 0}
-                      </p>
-                    </div>
-                  </div>
+                {/* Right Column - Contenu Futur */}
+                <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8 flex items-center justify-center">
+                  <p className="text-gray-400 text-center">Contenu futur</p>
                 </div>
               </div>
 
-              {/* My Ideas Section */}
+              {/* Contenu Futur Section */}
               <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8">
-                <h3 className="text-2xl font-bold text-white mb-6">Mes Idées ({userIdeas.length})</h3>
-                
-                {userIdeas.length === 0 ? (
-                  <p className="text-gray-400 text-center py-8">Vous n'avez pas encore posté d'idée</p>
-                ) : (
-                  <div className="space-y-4">
-                    {userIdeas.map(idea => (
-                      <div key={idea.id} className="bg-gray-700 border border-gray-600 rounded-lg p-4 hover:border-gray-500 transition">
-                        {editingIdea === idea.id ? (
-                          <div>
-                            <textarea
-                              value={editText}
-                              onChange={(e) => setEditText(e.target.value)}
-                              className="w-full p-3 bg-gray-600 border border-gray-500 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
-                            />
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleSaveEdit(idea.id)}
-                                className="flex-1 bg-green-600 text-white font-semibold py-2 rounded-lg hover:bg-green-700 transition text-sm"
-                              >
-                                ✓ Enregistrer
-                              </button>
-                              <button
-                                onClick={() => setEditingIdea(null)}
-                                className="flex-1 bg-gray-600 text-white font-semibold py-2 rounded-lg hover:bg-gray-500 transition text-sm"
-                              >
-                                ✕ Annuler
-                              </button>
-                            </div>
-                          </div>
+                <h3 className="text-2xl font-bold text-white mb-6">📊 Contenu futur</h3>
+                <p className="text-gray-400 text-center py-8">Les statistiques et autres informations seront affichées ici prochainement.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Profile Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
+          <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-800">
+            <div className="sticky top-0 bg-gray-900 border-b border-gray-800 p-6 flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-white">Modifier le profil</h1>
+                <p className="text-gray-400 text-sm">Mettez à jour vos informations</p>
+              </div>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-3xl text-gray-400 hover:text-white cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-8">
+              <div className="flex gap-4 mb-8 border-b border-gray-700">
+                <button
+                  onClick={() => {
+                    setActiveTab('info');
+                    setError('');
+                    setSuccess('');
+                  }}
+                  className={`px-4 py-2 font-semibold transition ${
+                    activeTab === 'info'
+                      ? 'text-blue-400 border-b-2 border-blue-400'
+                      : 'text-gray-400 hover:text-gray-300'
+                  }`}
+                >
+                  Informations personnelles
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab('password');
+                    setError('');
+                    setSuccess('');
+                  }}
+                  className={`px-4 py-2 font-semibold transition ${
+                    activeTab === 'password'
+                      ? 'text-blue-400 border-b-2 border-blue-400'
+                      : 'text-gray-400 hover:text-gray-300'
+                  }`}
+                >
+                  Mot de passe
+                </button>
+              </div>
+
+              {error && (
+                <div className="p-4 bg-red-900 border border-red-600 text-red-200 rounded-lg mb-4">
+                  {error}
+                </div>
+              )}
+              {success && (
+                <div className="p-4 bg-green-900 border border-green-600 text-green-200 rounded-lg mb-4">
+                  {success}
+                </div>
+              )}
+
+              {activeTab === 'info' && (
+                <div className="space-y-6">
+                  <div>
+                    <label htmlFor="profilePhoto" className="block text-sm font-semibold text-gray-300 mb-2">
+                      Photo de profil
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <div className="w-24 h-24 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-3xl border-4 border-gray-700 flex-shrink-0">
+                        {editData.profilePhoto ? (
+                          <img src={editData.profilePhoto} alt="Preview" className="w-full h-full rounded-full object-cover" />
                         ) : (
-                          <>
-                            <p className="text-gray-100 mb-3">{idea.content}</p>
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-4 text-gray-400">
-                                <span>❤️ {idea.likes} likes</span>
-                                <span>{idea.createdAt}</span>
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleEditIdea(idea)}
-                                  className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition text-xs"
-                                >
-                                  ✏️ Modifier
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(idea.id)}
-                                  className="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition text-xs"
-                                >
-                                  🗑️ Supprimer
-                                </button>
-                              </div>
-                            </div>
-                          </>
+                          (user.name || user.nom || '?').charAt(0).toUpperCase()
                         )}
                       </div>
-                    ))}
+                      <input
+                        id="profilePhoto"
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoChange}
+                        className="flex-1 p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer"
+                      />
+                    </div>
                   </div>
-                )}
-              </div>
+
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-semibold text-gray-300 mb-2">
+                      Nom complet
+                    </label>
+                    <input
+                      id="name"
+                      type="text"
+                      value={editData.name}
+                      onChange={handleInfoChange}
+                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="alias" className="block text-sm font-semibold text-gray-300 mb-2">
+                      Alias (nom d'utilisateur)
+                    </label>
+                    <input
+                      id="alias"
+                      type="text"
+                      value={editData.alias}
+                      onChange={handleInfoChange}
+                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-semibold text-gray-300 mb-2">
+                      Email
+                    </label>
+                    <input
+                      id="email"
+                      type="email"
+                      value={editData.email}
+                      onChange={handleInfoChange}
+                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="dateOfBirth" className="block text-sm font-semibold text-gray-300 mb-2">
+                      Date de naissance
+                    </label>
+                    <input
+                      id="dateOfBirth"
+                      type="date"
+                      value={editData.dateOfBirth}
+                      onChange={handleInfoChange}
+                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="address" className="block text-sm font-semibold text-gray-300 mb-2">
+                      Adresse
+                    </label>
+                    <textarea
+                      id="address"
+                      value={editData.address}
+                      onChange={handleInfoChange}
+                      rows="3"
+                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={handleSaveInfo}
+                      disabled={loading}
+                      className="flex-1 bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? 'Sauvegarde...' : '✓ Enregistrer les modifications'}
+                    </button>
+                    <button
+                      onClick={() => setShowEditModal(false)}
+                      className="flex-1 bg-gray-700 text-white font-semibold py-3 rounded-lg hover:bg-gray-600 transition"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'password' && (
+                <div className="space-y-6">
+                  <div>
+                    <label htmlFor="oldPassword" className="block text-sm font-semibold text-gray-300 mb-2">
+                      Ancien mot de passe
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="oldPassword"
+                        type={passwordData.showOld ? 'text' : 'password'}
+                        value={passwordData.oldPassword}
+                        onChange={handlePasswordChange}
+                        className="w-full p-3 pr-10 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setPasswordData({ ...passwordData, showOld: !passwordData.showOld })}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                      >
+                        {passwordData.showOld ? '👁️' : '👁️‍🗨️'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="newPassword" className="block text-sm font-semibold text-gray-300 mb-2">
+                      Nouveau mot de passe
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="newPassword"
+                        type={passwordData.showNew ? 'text' : 'password'}
+                        value={passwordData.newPassword}
+                        onChange={handlePasswordChange}
+                        className="w-full p-3 pr-10 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setPasswordData({ ...passwordData, showNew: !passwordData.showNew })}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                      >
+                        {passwordData.showNew ? '👁️' : '👁️‍🗨️'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-300 mb-2">
+                      Confirmer le nouveau mot de passe
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="confirmPassword"
+                        type={passwordData.showConfirm ? 'text' : 'password'}
+                        value={passwordData.confirmPassword}
+                        onChange={handlePasswordChange}
+                        className="w-full p-3 pr-10 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setPasswordData({ ...passwordData, showConfirm: !passwordData.showConfirm })}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                      >
+                        {passwordData.showConfirm ? '👁️' : '👁️‍🗨️'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={handleChangePassword}
+                      disabled={loading}
+                      className="flex-1 bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {loading ? 'Changement...' : '✓ Changer le mot de passe'}
+                    </button>
+                    <button
+                      onClick={() => setShowEditModal(false)}
+                      className="flex-1 bg-gray-700 text-white font-semibold py-3 rounded-lg hover:bg-gray-600 transition"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

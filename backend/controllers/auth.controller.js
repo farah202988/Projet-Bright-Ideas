@@ -4,11 +4,11 @@ import { generateTokenAndSetCookie } from "../utils/generateTokenAndSetCookie.js
 
 //SIGNUP 
 export const signup = async (req, res) => {
-  const { name, alias, email, password, confirmPassword } = req.body;
+  const { name, alias, email, dateOfBirth, address, password, confirmPassword } = req.body;
 
   try {
     // Validation des champs
-    if (!name|| !alias || !email || !password || !confirmPassword) {
+    if (!name || !alias || !email || !dateOfBirth || !address || !password || !confirmPassword) {
       throw new Error("Tous les champs sont obligatoires");
     }
      // Validation du format de l'email avec regex
@@ -65,6 +65,8 @@ export const signup = async (req, res) => {
       name,
       alias,
       email,
+      dateOfBirth,
+      address,
       password: hashedPassword,
       verificationToken,
       verificationTokenExpiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24h
@@ -79,8 +81,14 @@ export const signup = async (req, res) => {
       success: true,
       message: "Utilisateur créé avec succès",
       user: {
-        ...user._doc,
-        password: undefined,
+        _id: user._id,
+        name: user.name,
+        alias: user.alias,
+        email: user.email,
+        dateOfBirth: user.dateOfBirth,
+        address: user.address,
+        role: user.role,
+        isVerified: user.isVerified,
       },
     });
   } catch (error) {
@@ -130,10 +138,12 @@ export const login = async (req, res) => {
       message: "Connexion réussie",
       user: {
         _id: user._id,
-        nom: user.nom,
+        name: user.name,
         alias: user.alias,
         email: user.email,
-        role: user.role,  // ← IMPORTANT : Renvoyer le rôle
+        dateOfBirth: user.dateOfBirth,
+        address: user.address,
+        role: user.role,
         isVerified: user.isVerified,
         lastLogin: user.lastLogin
       }
@@ -142,8 +152,133 @@ export const login = async (req, res) => {
     res.status(400).json({ success: false, message: error.message });
   }
 };
+
 // LOGOUT
 export const logout = (req, res) => {
   res.clearCookie("token"); // Supprime le cookie JWT
   res.status(200).json({ success: true, message: "Déconnexion réussie" });
+};
+
+// UPDATE PROFILE
+export const updateProfile = async (req, res) => {
+  try {
+    // DEBUG: Afficher ce qui arrive du serveur
+    console.log('req.body:', req.body);
+    console.log('req.user:', req.user);
+
+    const userId = req.user._id; // Récupéré du JWT via middleware auth
+    const { name, alias, email, dateOfBirth, address, profilePhoto } = req.body;
+
+    if (!name || !alias || !email || !dateOfBirth || !address) {
+      return res.status(400).json({
+        success: false,
+        message: "Tous les champs sont obligatoires"
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Format d'email invalide"
+      });
+    }
+
+    const emailExists = await User.findOne({ email, _id: { $ne: userId } });
+    if (emailExists) {
+      return res.status(400).json({
+        success: false,
+        message: "Cet email est déjà utilisé"
+      });
+    }
+
+    const aliasExists = await User.findOne({ alias, _id: { $ne: userId } });
+    if (aliasExists) {
+      return res.status(400).json({
+        success: false,
+        message: "Cet alias est déjà utilisé"
+      });
+    }
+
+    // Préparer les données à mettre à jour
+    const updateData = { name, alias, email, dateOfBirth, address };
+    
+    // Ajouter la photo si elle est fournie et valide (commence par data: = base64)
+    if (profilePhoto && typeof profilePhoto === 'string' && profilePhoto.startsWith('data:')) {
+      updateData.profilePhoto = profilePhoto;
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Profil mis à jour avec succès",
+      user: {
+        _id: user._id,
+        name: user.name,
+        alias: user.alias,
+        email: user.email,
+        dateOfBirth: user.dateOfBirth,
+        address: user.address,
+        role: user.role,
+        isVerified: user.isVerified,
+        profilePhoto: user.profilePhoto,
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// CHANGE PASSWORD
+export const changePassword = async (req, res) => {
+  const userId = req.user._id;
+  const { oldPassword, newPassword } = req.body;
+
+  try {
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "L'ancien et le nouveau mot de passe sont obligatoires"
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Le nouveau mot de passe doit contenir au moins 8 caractères"
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Utilisateur non trouvé"
+      });
+    }
+
+    const isOldPasswordValid = await bcryptjs.compare(oldPassword, user.password);
+    if (!isOldPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "L'ancien mot de passe est incorrect"
+      });
+    }
+
+    const hashedPassword = await bcryptjs.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Mot de passe changé avec succès"
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
 };
