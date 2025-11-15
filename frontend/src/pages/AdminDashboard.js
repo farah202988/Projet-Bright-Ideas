@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ManageUsers from '../components/ManageUsers';
 import '../styles/AdminDashboard.css';
 import bgImage from '../assets/bright-ideas-bg.jpg';
 
@@ -11,6 +12,7 @@ const AdminDashboard = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [activeSection, setActiveSection] = useState('dashboard'); // Pour switcher entre sections
   const navigate = useNavigate();
 
   const [editData, setEditData] = useState({
@@ -166,13 +168,24 @@ const AdminDashboard = () => {
               <div className="sidebar-avatar-initial">{userInitial}</div>
             }
             <div className="sidebar-username">{user.alias || user.name}</div>
-            <div className="admin-badge">👑 ADMIN</div>
           </div>
         </div>
 
         <nav className="sidebar-nav" aria-label="Main menu">
-          <a href="/admin" className="nav-item active">Dashboard</a>
-          <a href="/admin/users" className="nav-item">Gestion Utilisateurs</a>
+          <a 
+            href="#dashboard" 
+            onClick={() => setActiveSection('dashboard')}
+            className={`nav-item ${activeSection === 'dashboard' ? 'active' : ''}`}
+          >
+            Dashboard
+          </a>
+          <a 
+            href="#users" 
+            onClick={() => setActiveSection('users')}
+            className={`nav-item ${activeSection === 'users' ? 'active' : ''}`}
+          >
+            Gestion Utilisateurs
+          </a>
           <a href="/admin/ideas" className="nav-item">Modération Idées</a>
           <a href="/admin/stats" className="nav-item">Statistiques</a>
 
@@ -222,99 +235,60 @@ const AdminDashboard = () => {
         </section>
 
         <main className="main-content">
-          {/* Stats Cards */}
-          <div className="stats-grid">
-            <div className="stat-card card-panel">
-              <div className="stat-icon">👥</div>
-              <div className="stat-content">
-                <h3>Total Utilisateurs</h3>
-                <p className="stat-number">1,234</p>
-                <span className="stat-trend up">+12% ce mois</span>
-              </div>
-            </div>
+          {/* SECTION DASHBOARD */}
+          {activeSection === 'dashboard' && (
+            <>
+              {/* Stats Cards - SEULEMENT LES STATS */}
+              <div className="stats-grid">
+                <div className="stat-card card-panel">
+                  <div className="stat-icon">👥</div>
+                  <div className="stat-content">
+                    <h3>Total Utilisateurs</h3>
+                    <p className="stat-number">1,234</p>
+                    <span className="stat-trend up">+12% ce mois</span>
+                  </div>
+                </div>
 
-            <div className="stat-card card-panel">
-              <div className="stat-icon">💡</div>
-              <div className="stat-content">
-                <h3>Idées Publiées</h3>
-                <p className="stat-number">5,678</p>
-                <span className="stat-trend up">+8% ce mois</span>
-              </div>
-            </div>
+                <div className="stat-card card-panel">
+                  <div className="stat-icon">💡</div>
+                  <div className="stat-content">
+                    <h3>Idées Publiées</h3>
+                    <p className="stat-number">5,678</p>
+                    <span className="stat-trend up">+8% ce mois</span>
+                  </div>
+                </div>
 
-            <div className="stat-card card-panel">
-              <div className="stat-icon">⚠️</div>
-              <div className="stat-content">
-                <h3>Rapports en attente</h3>
-                <p className="stat-number">23</p>
-                <span className="stat-trend down">-5% ce mois</span>
-              </div>
-            </div>
+                <div className="stat-card card-panel">
+                  <div className="stat-icon">⚠️</div>
+                  <div className="stat-content">
+                    <h3>Rapports en attente</h3>
+                    <p className="stat-number">23</p>
+                    <span className="stat-trend down">-5% ce mois</span>
+                  </div>
+                </div>
 
-            <div className="stat-card card-panel">
-              <div className="stat-icon">⭐</div>
-              <div className="stat-content">
-                <h3>Évaluations</h3>
-                <p className="stat-number">4.8/5</p>
-                <span className="stat-trend neutral">Stable</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Actions rapides */}
-          <div className="card-panel admin-actions">
-            <h2>Actions Rapides</h2>
-            <div className="actions-grid">
-              <button className="action-btn primary">
-                <span className="action-icon">👥</span>
-                <span>Gérer Utilisateurs</span>
-              </button>
-              <button className="action-btn secondary">
-                <span className="action-icon">🔍</span>
-                <span>Modérer Contenu</span>
-              </button>
-              <button className="action-btn tertiary">
-                <span className="action-icon">📊</span>
-                <span>Statistiques</span>
-              </button>
-              <button className="action-btn quaternary">
-                <span className="action-icon">⚙️</span>
-                <span>Paramètres</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Activité récente */}
-          <div className="card-panel recent-activity">
-            <h2>Activité Récente</h2>
-            <div className="activity-list">
-              <div className="activity-item">
-                <div className="activity-icon">👤</div>
-                <div className="activity-content">
-                  <p className="activity-title">Nouvel utilisateur inscrit</p>
-                  <p className="activity-time">Il y a 5 minutes</p>
+                <div className="stat-card card-panel">
+                  <div className="stat-icon">⭐</div>
+                  <div className="stat-content">
+                    <h3>Évaluations</h3>
+                    <p className="stat-number">4.8/5</p>
+                    <span className="stat-trend neutral">Stable</span>
+                  </div>
                 </div>
               </div>
-              <div className="activity-item">
-                <div className="activity-icon">💡</div>
-                <div className="activity-content">
-                  <p className="activity-title">Nouvelle idée publiée</p>
-                  <p className="activity-time">Il y a 15 minutes</p>
-                </div>
-              </div>
-              <div className="activity-item">
-                <div className="activity-icon">⚠️</div>
-                <div className="activity-content">
-                  <p className="activity-title">Nouveau rapport signalé</p>
-                  <p className="activity-time">Il y a 1 heure</p>
-                </div>
-              </div>
+            </>
+          )}
+
+          {/* SECTION GESTION UTILISATEURS */}
+          {activeSection === 'users' && (
+            <div className="card-panel users-section">
+              <ManageUsers />
             </div>
-          </div>
+          )}
         </main>
       </div>
 
-      {/* MODAL PROFIL (même que Accueil.js) */}
+      {/* MODAL PROFIL */}
       {showProfileModal && (
         <div className="modal-overlay" onClick={() => setShowProfileModal(false)}>
           <div className="modal-container modal-profile-improved" onClick={(e) => e.stopPropagation()}>
