@@ -1,12 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import '../styles/AdminDashboard.css';
+import bgImage from '../assets/bright-ideas-bg.jpg';
 
 const AdminDashboard = () => {
   const [user, setUser] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('info');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const [editData, setEditData] = useState({
+    name: '',
+    alias: '',
+    email: '',
+    dateOfBirth: '',
+    address: '',
+    profilePhoto: null,
+  });
+
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+    showOld: false,
+    showNew: false,
+    showConfirm: false,
+  });
+
   useEffect(() => {
-    // Récupérer les infos utilisateur depuis localStorage
     const storedUser = localStorage.getItem('user');
     if (!storedUser) {
       navigate('/signin');
@@ -14,14 +39,20 @@ const AdminDashboard = () => {
     }
 
     const userData = JSON.parse(storedUser);
-    
-    // Vérifier que c'est bien un admin
     if (userData.role !== 'admin') {
       navigate('/accueil');
       return;
     }
 
     setUser(userData);
+    setEditData({
+      name: userData.name || '',
+      alias: userData.alias || '',
+      email: userData.email || '',
+      dateOfBirth: userData.dateOfBirth ? userData.dateOfBirth.split('T')[0] : '',
+      address: userData.address || '',
+      profilePhoto: userData.profilePhoto || null,
+    });
   }, [navigate]);
 
   const handleLogout = () => {
@@ -29,77 +60,390 @@ const AdminDashboard = () => {
     navigate('/signin');
   };
 
-  if (!user) return <div>Chargement...</div>;
+  const handleInfoChange = (e) => {
+    setEditData({ ...editData, [e.target.id]: e.target.value });
+  };
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditData({ ...editData, profilePhoto: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handlePasswordChange = (e) => {
+    setPasswordData({ ...passwordData, [e.target.id]: e.target.value });
+  };
+
+  const handleSaveInfo = async () => {
+    setError('');
+    setSuccess('');
+    setLoading(true);
+    try {
+      const bodyData = {
+        name: editData.name,
+        alias: editData.alias,
+        email: editData.email,
+        dateOfBirth: editData.dateOfBirth,
+        address: editData.address,
+      };
+      if (editData.profilePhoto && editData.profilePhoto.startsWith('data:')) {
+        bodyData.profilePhoto = editData.profilePhoto;
+      }
+      const response = await fetch('http://localhost:5000/api/auth/update-profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(bodyData),
+      });
+      const data = await response.json();
+      if (!data.success) throw new Error(data.message || "Erreur lors de la mise à jour");
+      const updatedUser = { ...data.user, profilePhoto: editData.profilePhoto || data.user.profilePhoto };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setSuccess('Informations mises à jour avec succès !');
+      setLoading(false);
+    } catch (err) {
+      setError(err.message || "Erreur lors de la mise à jour");
+      setLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setError('');
+    setSuccess('');
+    if (!passwordData.oldPassword) { setError('Veuillez saisir votre ancien mot de passe'); return; }
+    if (!passwordData.newPassword) { setError('Veuillez saisir votre nouveau mot de passe'); return; }
+    if (passwordData.newPassword.length < 8) { setError('Le nouveau mot de passe doit contenir au moins 8 caractères'); return; }
+    if (passwordData.newPassword !== passwordData.confirmPassword) { setError('Les mots de passe ne correspondent pas'); return; }
+
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/change-password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ oldPassword: passwordData.oldPassword, newPassword: passwordData.newPassword }),
+      });
+      const data = await response.json();
+      if (!data.success) throw new Error(data.message || "Erreur lors du changement de mot de passe");
+      setSuccess('Mot de passe changé avec succès !');
+      setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '', showOld: false, showNew: false, showConfirm: false });
+      setLoading(false);
+    } catch (err) {
+      setError(err.message || "Erreur lors du changement de mot de passe");
+      setLoading(false);
+    }
+  };
+
+  if (!user) {
+    return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#05060a', color: '#fff' }}><p>Chargement...</p></div>;
+  }
+
+  const profilePhotoSrc = editData.profilePhoto || user.profilePhoto || null;
+  const userInitial = (user.name || user.alias || 'A').charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <header className="bg-gray-900 text-white p-4 shadow-lg">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-          <button
-            onClick={handleLogout}
-            className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition-colors"
+    <div className="admin-root">
+      <div className="bg-hero" aria-hidden="true" style={{ backgroundImage: `url(${bgImage})` }} />
+
+      {/* SIDEBAR GAUCHE */}
+      <aside className="sidebar" aria-label="Navigation">
+        <div className="sidebar-top">
+          <div className="sidebar-brand">💡 Bright Ideas</div>
+          
+          <div
+            className="sidebar-profile-section"
+            onClick={() => { setShowProfileModal(true); setActiveTab('info'); }}
+            role="button" tabIndex={0} aria-label="Edit profile"
           >
-            Déconnexion
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto p-8">
-        {/* Welcome Card */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-          <h2 className="text-3xl font-serif mb-4">
-            Bienvenue, <span className="text-blue-600">{user.nom}</span> 👋
-          </h2>
-          <p className="text-gray-600 text-lg">
-            Vous êtes connecté en tant qu'<span className="font-bold text-gray-900">administrateur</span>
-          </p>
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-sm text-gray-700">
-              <strong>Email:</strong> {user.email}<br />
-              <strong>Alias:</strong> @{user.alias}<br />
-              <strong>Rôle:</strong> {user.role}
-            </p>
+            {profilePhotoSrc ? 
+              <img src={profilePhotoSrc} alt="profile" className="sidebar-avatar" /> : 
+              <div className="sidebar-avatar-initial">{userInitial}</div>
+            }
+            <div className="sidebar-username">{user.alias || user.name}</div>
+            <div className="admin-badge">👑 ADMIN</div>
           </div>
         </div>
 
-        {/* Admin Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h3 className="text-gray-500 text-sm font-semibold uppercase">Total Utilisateurs</h3>
-            <p className="text-4xl font-bold text-gray-900 mt-2">0</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h3 className="text-gray-500 text-sm font-semibold uppercase">Idées Publiées</h3>
-            <p className="text-4xl font-bold text-gray-900 mt-2">0</p>
-          </div>
-          <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h3 className="text-gray-500 text-sm font-semibold uppercase">Rapports</h3>
-            <p className="text-4xl font-bold text-gray-900 mt-2">0</p>
-          </div>
-        </div>
+        <nav className="sidebar-nav" aria-label="Main menu">
+          <a href="/admin" className="nav-item active">Dashboard</a>
+          <a href="/admin/users" className="nav-item">Gestion Utilisateurs</a>
+          <a href="/admin/ideas" className="nav-item">Modération Idées</a>
+          <a href="/admin/stats" className="nav-item">Statistiques</a>
 
-        {/* Admin Actions */}
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <h3 className="text-2xl font-bold mb-6">Actions Admin</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-lg font-semibold transition-colors">
-              Gérer les utilisateurs
-            </button>
-            <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-lg font-semibold transition-colors">
-              Modérer le contenu
-            </button>
-            <button className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-lg font-semibold transition-colors">
-              Voir les statistiques
-            </button>
-            <button className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-4 rounded-lg font-semibold transition-colors">
-              Paramètres système
-            </button>
+          <div
+            className="nav-item profile-item"
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              setShowDropdown(!showDropdown); 
+            }}
+            role="button" tabIndex={0}
+            aria-expanded={showDropdown}
+            aria-controls="profile-submenu"
+          >
+            Profil Admin
+            <span className={`dropdown-arrow-sidebar ${showDropdown ? 'open' : ''}`}>▼</span>
+          </div>
+
+          {showDropdown && (
+            <div className="dropdown-submenu" id="profile-submenu">
+              <button className="dropdown-submenu-item" onClick={() => { 
+                setShowProfileModal(true); 
+                setActiveTab('info'); 
+                setShowDropdown(false);
+              }}>Informations Personnelles</button>
+              <button className="dropdown-submenu-item" onClick={() => { 
+                setShowProfileModal(true); 
+                setActiveTab('password'); 
+                setShowDropdown(false);
+              }}>Changer le Mot de Passe</button>
+            </div>
+          )}
+        </nav>
+
+        <div className="sidebar-footer">
+          <button className="logout-btn" onClick={handleLogout}>Déconnexion</button>
+        </div>
+      </aside>
+
+      {/* CONTENU PRINCIPAL */}
+      <div className="main-content-wrapper">
+        <section className="hero-section glass-hero hero-improved admin-hero" role="banner">
+          <div className="hero-left hero-left-improved">
+            <h1 className="hero-title hero-title-improved">Administration Dashboard</h1>
+            <div className="hero-accent" aria-hidden="true" />
+            <p className="hero-subtitle hero-subtitle-improved">Gérez les utilisateurs, modérez le contenu et consultez les statistiques.</p>
+          </div>
+        </section>
+
+        <main className="main-content">
+          {/* Stats Cards */}
+          <div className="stats-grid">
+            <div className="stat-card card-panel">
+              <div className="stat-icon">👥</div>
+              <div className="stat-content">
+                <h3>Total Utilisateurs</h3>
+                <p className="stat-number">1,234</p>
+                <span className="stat-trend up">+12% ce mois</span>
+              </div>
+            </div>
+
+            <div className="stat-card card-panel">
+              <div className="stat-icon">💡</div>
+              <div className="stat-content">
+                <h3>Idées Publiées</h3>
+                <p className="stat-number">5,678</p>
+                <span className="stat-trend up">+8% ce mois</span>
+              </div>
+            </div>
+
+            <div className="stat-card card-panel">
+              <div className="stat-icon">⚠️</div>
+              <div className="stat-content">
+                <h3>Rapports en attente</h3>
+                <p className="stat-number">23</p>
+                <span className="stat-trend down">-5% ce mois</span>
+              </div>
+            </div>
+
+            <div className="stat-card card-panel">
+              <div className="stat-icon">⭐</div>
+              <div className="stat-content">
+                <h3>Évaluations</h3>
+                <p className="stat-number">4.8/5</p>
+                <span className="stat-trend neutral">Stable</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions rapides */}
+          <div className="card-panel admin-actions">
+            <h2>Actions Rapides</h2>
+            <div className="actions-grid">
+              <button className="action-btn primary">
+                <span className="action-icon">👥</span>
+                <span>Gérer Utilisateurs</span>
+              </button>
+              <button className="action-btn secondary">
+                <span className="action-icon">🔍</span>
+                <span>Modérer Contenu</span>
+              </button>
+              <button className="action-btn tertiary">
+                <span className="action-icon">📊</span>
+                <span>Statistiques</span>
+              </button>
+              <button className="action-btn quaternary">
+                <span className="action-icon">⚙️</span>
+                <span>Paramètres</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Activité récente */}
+          <div className="card-panel recent-activity">
+            <h2>Activité Récente</h2>
+            <div className="activity-list">
+              <div className="activity-item">
+                <div className="activity-icon">👤</div>
+                <div className="activity-content">
+                  <p className="activity-title">Nouvel utilisateur inscrit</p>
+                  <p className="activity-time">Il y a 5 minutes</p>
+                </div>
+              </div>
+              <div className="activity-item">
+                <div className="activity-icon">💡</div>
+                <div className="activity-content">
+                  <p className="activity-title">Nouvelle idée publiée</p>
+                  <p className="activity-time">Il y a 15 minutes</p>
+                </div>
+              </div>
+              <div className="activity-item">
+                <div className="activity-icon">⚠️</div>
+                <div className="activity-content">
+                  <p className="activity-title">Nouveau rapport signalé</p>
+                  <p className="activity-time">Il y a 1 heure</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* MODAL PROFIL (même que Accueil.js) */}
+      {showProfileModal && (
+        <div className="modal-overlay" onClick={() => setShowProfileModal(false)}>
+          <div className="modal-container modal-profile-improved" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Profile Settings</h2>
+              <button className="modal-close" onClick={() => setShowProfileModal(false)}>✕</button>
+            </div>
+
+            <div className="modal-body modal-body-improved">
+              <div className="profile-nav-sidebar">
+                <button 
+                  className={`profile-nav-item ${activeTab === 'info' ? 'active' : ''}`} 
+                  onClick={() => { setActiveTab('info'); setError(''); setSuccess(''); }}
+                >
+                  <span className="icon">👤</span> Personal Information
+                </button>
+                <button 
+                  className={`profile-nav-item ${activeTab === 'password' ? 'active' : ''}`} 
+                  onClick={() => { setActiveTab('password'); setError(''); setSuccess(''); }}
+                >
+                  <span className="icon">🔒</span> Change Password
+                </button>
+              </div>
+
+              <div className="profile-content-area">
+                {activeTab === 'info' && (
+                  <div className="tab-content-info">
+                    <h3 className="content-title">Update Your Personal Details</h3>
+                    <p className="content-subtitle">Review and update your profile information. This will be visible to other users.</p>
+
+                    <div className="profile-photo-section">
+                      <div className="profile-photo-preview">
+                        {editData.profilePhoto ? <img src={editData.profilePhoto} alt="Preview" /> : userInitial}
+                      </div>
+                      <div className="photo-upload-wrapper">
+                        <label htmlFor="photo-upload" className="photo-upload-label">
+                          📷 Choose Photo
+                        </label>
+                        <input 
+                          id="photo-upload"
+                          type="file" 
+                          accept="image/*" 
+                          onChange={handlePhotoChange} 
+                          className="photo-upload-input" 
+                        />
+                        <span className="photo-upload-hint">JPG, PNG or GIF (Max 5MB)</span>
+                      </div>
+                    </div>
+
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label htmlFor="name" className="form-label">👤 Full Name</label>
+                        <input id="name" type="text" value={editData.name} onChange={handleInfoChange} className="form-input" />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="alias" className="form-label">✨ Username</label>
+                        <input id="alias" type="text" value={editData.alias} onChange={handleInfoChange} className="form-input" />
+                      </div>
+                    </div>
+
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label htmlFor="email" className="form-label">📧 Email</label>
+                        <input id="email" type="email" value={editData.email} onChange={handleInfoChange} className="form-input" />
+                      </div>
+                      <div className="form-group">
+                        <label htmlFor="dateOfBirth" className="form-label">🎂 Date of Birth</label>
+                        <input id="dateOfBirth" type="date" value={editData.dateOfBirth} onChange={handleInfoChange} className="form-input" min="1965-01-01" max="2010-12-31" />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="address" className="form-label">🏠 Address</label>
+                      <textarea id="address" value={editData.address} onChange={handleInfoChange} rows="3" className="form-input" />
+                    </div>
+
+                    {error && <div className="alert alert-error">{error}</div>}
+                    {success && <div className="alert alert-success">{success}</div>}
+
+                    <div className="form-actions">
+                      <button onClick={handleSaveInfo} disabled={loading} className="btn btn-primary">{loading ? '⏳ Saving...' : '✓ Save Changes'}</button>
+                      <button onClick={() => setShowProfileModal(false)} className="btn btn-secondary">Cancel</button>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'password' && (
+                  <div className="tab-content-password">
+                    <h3 className="content-title">Change Your Password</h3>
+                    <p className="content-subtitle">Use a strong password that you haven't used before.</p>
+
+                    <div className="form-group">
+                      <label htmlFor="oldPassword" className="form-label">Current Password</label>
+                      <div className="password-input-wrapper">
+                        <input id="oldPassword" type={passwordData.showOld ? 'text' : 'password'} value={passwordData.oldPassword} onChange={handlePasswordChange} className="form-input" />
+                        <button type="button" onClick={() => setPasswordData({ ...passwordData, showOld: !passwordData.showOld })} className="toggle-password">{passwordData.showOld ? '👁️' : '👁️‍🗨️'}</button>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="newPassword" className="form-label">New Password</label>
+                      <div className="password-input-wrapper">
+                        <input id="newPassword" type={passwordData.showNew ? 'text' : 'password'} value={passwordData.newPassword} onChange={handlePasswordChange} className="form-input" />
+                        <button type="button" onClick={() => setPasswordData({ ...passwordData, showNew: !passwordData.showNew })} className="toggle-password">{passwordData.showNew ? '👁️' : '👁️‍🗨️'}</button>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="confirmPassword" className="form-label">Confirm New Password</label>
+                      <div className="password-input-wrapper">
+                        <input id="confirmPassword" type={passwordData.showConfirm ? 'text' : 'password'} value={passwordData.confirmPassword} onChange={handlePasswordChange} className="form-input" />
+                        <button type="button" onClick={() => setPasswordData({ ...passwordData, showConfirm: !passwordData.showConfirm })} className="toggle-password">{passwordData.showConfirm ? '👁️' : '👁️‍🗨️'}</button>
+                      </div>
+                    </div>
+
+                    {error && <div className="alert alert-error">{error}</div>}
+                    {success && <div className="alert alert-success">{success}</div>}
+
+                    <div className="form-actions">
+                      <button onClick={handleChangePassword} disabled={loading} className="btn btn-primary">{loading ? '⏳ Updating...' : '✓ Update Password'}</button>
+                      <button onClick={() => setShowProfileModal(false)} className="btn btn-secondary">Cancel</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </main>
+      )}
     </div>
   );
 };

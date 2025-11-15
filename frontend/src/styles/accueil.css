@@ -62,7 +62,7 @@ body,html,#root{height:100%;margin:0;font-family:Inter, "Helvetica Neue", Arial,
 
 @keyframes brandGlow {
   0%, 100% { filter: drop-shadow(0 0 10px rgba(124,73,245,0.3)); }
-  50% { filter: drop_shadow(0 0 20px rgba(124,73,245,0.5)); }
+  50% { filter: drop-shadow(0 0 20px rgba(124,73,245,0.5)); }
 }
 
 /* Section de profil carrée modernisée */
@@ -597,10 +597,66 @@ body,html,#root{height:100%;margin:0;font-family:Inter, "Helvetica Neue", Arial,
   padding-bottom: 1rem;
 }
 
-/* Alerts */
-.alert{ padding:14px 18px; border-radius:12px; margin-bottom:1.5rem; font-weight:600; font-size:0.95rem; }
-.alert-error{ background: linear-gradient(135deg, #fee2e2, #fecaca); color:#991b1b; border-left:4px solid #dc2626; }
-.alert-success{ background: linear-gradient(135deg, #d1fae5, #a7f3d0); color:#065f46; border-left:4px solid #10b981; }
+/* Tab content sections with flexbox pour ordre d'affichage */
+.tab-content-info,
+.tab-content-password {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Les alertes doivent apparaître juste avant les boutons */
+.tab-content-info .alert,
+.tab-content-password .alert {
+  order: 998; /* Juste avant les boutons (999) */
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.tab-content-info .form-actions,
+.tab-content-password .form-actions {
+  order: 999; /* Place les boutons en dernier */
+}
+
+/* Tous les autres éléments (inputs, labels, etc.) restent dans leur ordre normal */
+.tab-content-info .content-title,
+.tab-content-password .content-title {
+  order: 1;
+}
+
+.tab-content-info .content-subtitle,
+.tab-content-password .content-subtitle {
+  order: 2;
+}
+
+.tab-content-info .form-group,
+.tab-content-password .form-group,
+.tab-content-info .profile-photo-section,
+.tab-content-password .profile-photo-section,
+.tab-content-info .form-grid-2,
+.tab-content-password .form-grid-2 {
+  order: 3; /* Ordre normal pour les formulaires */
+}
+
+/* Alerts - Positionnés au-dessus des boutons avec couleur violette */
+.alert{ 
+  padding:14px 18px; 
+  border-radius:12px; 
+  margin-bottom:1.5rem; 
+  font-weight:600; 
+  font-size:0.95rem;
+}
+.alert-error{ 
+  background: linear-gradient(135deg, #fde8ff, #f3d4ff); 
+  color:#7c49f5; 
+  border-left:4px solid var(--accent-violet); 
+  box-shadow: 0 4px 15px rgba(124,73,245,0.15);
+}
+.alert-success{ 
+  background: linear-gradient(135deg, #e8d4ff, #d4b3ff); 
+  color:#6b21a8; 
+  border-left:4px solid var(--accent-violet-2); 
+  box-shadow: 0 4px 15px rgba(124,73,245,0.2);
+}
 
 /* forms */
 .form-group{ margin-bottom:1.5rem; }

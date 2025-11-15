@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PostIdea from '../components/PostIdea'; // ← Import du nouveau composant
 import '../styles/accueil.css';
 import bgImage from '../assets/bright-ideas-bg.jpg';
 
@@ -107,7 +108,6 @@ const Acceuil = () => {
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setSuccess('Informations mises à jour avec succès !');
       setLoading(false);
-      // setTimeout(() => setShowProfileModal(false), 1000); // Commenté pour laisser la modal ouverte après succès
     } catch (err) {
       setError(err.message || "Erreur lors de la mise à jour");
       setLoading(false);
@@ -135,7 +135,6 @@ const Acceuil = () => {
       setSuccess('Mot de passe changé avec succès !');
       setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '', showOld: false, showNew: false, showConfirm: false });
       setLoading(false);
-      // setTimeout(() => setShowProfileModal(false), 1000); // Commenté pour laisser la modal ouverte après succès
     } catch (err) {
       setError(err.message || "Erreur lors du changement de mot de passe");
       setLoading(false);
@@ -158,7 +157,6 @@ const Acceuil = () => {
         <div className="sidebar-top">
           <div className="sidebar-brand">💡 Bright Ideas</div>
           
-          {/* Section de profil modernisée */}
           <div
             className="sidebar-profile-section"
             onClick={() => { setShowProfileModal(true); setActiveTab('info'); }}
@@ -223,9 +221,13 @@ const Acceuil = () => {
         </section>
 
         <main className="main-content">
+          {/* ⭐ NOUVELLE SECTION : Poster une idée */}
+          <PostIdea user={user} />
+
+          {/* Contenu existant */}
           <div className="panel card-panel">
-            <h2>🚀 Contenu à venir</h2>
-            <p>La section de publication d'idées sera disponible très bientôt !</p>
+            <h2>🚀 Fil d'actualités</h2>
+            <p>Les idées de la communauté apparaîtront ici !</p>
           </div>
         </main>
       </div>
@@ -233,12 +235,12 @@ const Acceuil = () => {
       {/* SIDEBAR DROITE (Contenu futur) */}
       <aside className="right-sidebar" aria-label="Future Content">
         <div className="sidebar-panel">
-          <h3 className="sidebar-title">Contenus Futurs</h3>
-          <p className="sidebar-text">Cette section est réservée aux statistiques, aux amis, aux tendances, ou à d'autres informations contextuelles.</p>
+          <h3 className="sidebar-title">Tendances</h3>
+          <p className="sidebar-text">Les idées les plus populaires de la semaine</p>
           <div className="future-content-placeholder">
-            <p>Statistiques</p>
-            <p>Amis en ligne</p>
-            <p>Tendances</p>
+            <p>💡 Innovation Tech</p>
+            <p>🌍 Environnement</p>
+            <p>🎨 Design & Art</p>
           </div>
         </div>
       </aside>
@@ -254,7 +256,6 @@ const Acceuil = () => {
 
             <div className="modal-body modal-body-improved">
               
-              {/* Nouvelle structure de navigation latérale */}
               <div className="profile-nav-sidebar">
                 <button 
                   className={`profile-nav-item ${activeTab === 'info' ? 'active' : ''}`} 
@@ -271,8 +272,6 @@ const Acceuil = () => {
               </div>
 
               <div className="profile-content-area">
-                {error && <div className="alert alert-error">{error}</div>}
-                {success && <div className="alert alert-success">{success}</div>}
 
                 {activeTab === 'info' && (
                   <div className="tab-content-info">
@@ -334,7 +333,8 @@ const Acceuil = () => {
                       <label htmlFor="address" className="form-label">🏠 Address</label>
                       <textarea id="address" value={editData.address} onChange={handleInfoChange} rows="3" className="form-input" placeholder="Enter your full address" />
                     </div>
-
+                    {error && <div className="alert alert-error">{error}</div>}
+                    {success && <div className="alert alert-success">{success}</div>}
                     <div className="form-actions">
                       <button onClick={handleSaveInfo} disabled={loading} className="btn btn-primary">{loading ? '⏳ Saving...' : '✓ Save Changes'}</button>
                       <button onClick={() => setShowProfileModal(false)} className="btn btn-secondary">Cancel</button>
@@ -370,7 +370,8 @@ const Acceuil = () => {
                         <button type="button" onClick={() => setPasswordData({ ...passwordData, showConfirm: !passwordData.showConfirm })} className="toggle-password">{passwordData.showConfirm ? '👁️' : '👁️‍🗨️'}</button>
                       </div>
                     </div>
-
+                    {error && <div className="alert alert-error">{error}</div>}
+                    {success && <div className="alert alert-success">{success}</div>}
                     <div className="form-actions">
                       <button onClick={handleChangePassword} disabled={loading} className="btn btn-primary">{loading ? '⏳ Updating...' : '✓ Update Password'}</button>
                       <button onClick={() => setShowProfileModal(false)} className="btn btn-secondary">Cancel</button>
