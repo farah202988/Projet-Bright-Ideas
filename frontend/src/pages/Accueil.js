@@ -1,9 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import '../styles/accueil.css';
 
 const Accueil = () => {
   const [user, setUser] = useState(null);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('info');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   // States pour l'édition de profil
   const [editData, setEditData] = useState({
@@ -24,22 +31,17 @@ const Accueil = () => {
     showConfirm: false,
   });
 
-  const [activeTab, setActiveTab] = useState('info');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
-
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (!storedUser) {
-      window.location.href = '/signin';
+      navigate('/signin');
       return;
     }
 
     const userData = JSON.parse(storedUser);
     
     if (userData.role === 'admin') {
-      window.location.href = '/admin';
+      navigate('/admin');
       return;
     }
 
@@ -52,14 +54,13 @@ const Accueil = () => {
       address: userData.address || '',
       profilePhoto: userData.profilePhoto || null,
     });
-  }, []);
+  }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
-    window.location.href = '/signin';
+    navigate('/signin');
   };
 
-  // Fonctions pour l'édition de profil
   const handleInfoChange = (e) => {
     setEditData({ ...editData, [e.target.id]: e.target.value });
   };
@@ -93,12 +94,9 @@ const Accueil = () => {
         address: editData.address,
       };
       
-      // Ajouter la photo si elle a été changée et qu'elle est en base64
       if (editData.profilePhoto && editData.profilePhoto.startsWith('data:')) {
         bodyData.profilePhoto = editData.profilePhoto;
       }
-
-      console.log('Envoi des données:', bodyData);
 
       const response = await fetch('http://localhost:5000/api/auth/update-profile', {
         method: 'PUT',
@@ -127,7 +125,6 @@ const Accueil = () => {
       localStorage.setItem('user', JSON.stringify(updatedUser));
 
       setTimeout(() => {
-        setShowEditModal(false);
         setShowProfileModal(false);
       }, 1500);
 
@@ -194,7 +191,6 @@ const Accueil = () => {
       setLoading(false);
 
       setTimeout(() => {
-        setShowEditModal(false);
         setShowProfileModal(false);
       }, 1500);
 
@@ -206,439 +202,290 @@ const Accueil = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-lg text-gray-600">Chargement...</p>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p>Chargement...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-              💡
-            </div>
-            <span className="font-semibold text-gray-900">Bright Ideas</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <button className="text-gray-600 hover:text-gray-900 text-xl">🔔</button>
-            <button className="text-gray-600 hover:text-gray-900 text-xl">📌</button>
-            <button
-              onClick={() => setShowProfileModal(true)}
-              className="flex items-center gap-2 text-gray-700 hover:text-gray-900 font-medium cursor-pointer"
+    <div className="app-container">
+      {/* Sidebar Verticale */}
+      <aside className="sidebar">
+        <div className="sidebar-logo">
+          <span>💡</span>
+          <span>Bright Ideas</span>
+        </div>
+        
+        <nav className="sidebar-nav">
+          <a href="/accueil" className="nav-item active">
+            <span className="nav-icon">🏠</span>
+            <span>Home</span>
+          </a>
+          
+          <a href="/my-ideas" className="nav-item">
+            <span className="nav-icon">💡</span>
+            <span>My Ideas</span>
+          </a>
+          
+          <a href="/statistics" className="nav-item">
+            <span className="nav-icon">📊</span>
+            <span>Statistics</span>
+          </a>
+          
+          <div className="profile-dropdown-sidebar">
+            <button 
+              className="profile-trigger-sidebar" 
+              onClick={() => setShowDropdown(!showDropdown)}
             >
-              <span className="w-8 h-8 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden">
-                {user.profilePhoto ? (
-                  <img src={user.profilePhoto} alt={user.alias} className="w-full h-full object-cover" />
-                ) : (
-                  (user.name || user.nom || '?').charAt(0).toUpperCase()
-                )}
-              </span>
-              {user.alias}
+              <span className="nav-icon">👤</span>
+              <span>Profile</span>
+              <span className={`dropdown-arrow-sidebar ${showDropdown ? 'open' : ''}`}>▼</span>
             </button>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar Gauche */}
-          <aside className="lg:col-span-1">
-            <div className="bg-white rounded-3xl border border-gray-200 p-6 sticky top-24 text-center cursor-pointer hover:shadow-lg transition" onClick={() => setShowProfileModal(true)}>
-              <div className="w-full h-24 bg-gradient-to-r from-purple-300 via-blue-300 to-pink-300 rounded-2xl mb-4"></div>
-
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-2xl mx-auto -mt-8 mb-4 border-4 border-white overflow-hidden">
-                {user.profilePhoto ? (
-                  <img src={user.profilePhoto} alt={user.alias} className="w-full h-full object-cover" />
-                ) : (
-                  (user.name || user.nom || '?').charAt(0).toUpperCase()
-                )}
+            
+            {showDropdown && (
+              <div className="dropdown-submenu">
+                <button 
+                  className="dropdown-submenu-item" 
+                  onClick={() => {
+                    setShowProfileModal(true);
+                    setActiveTab('info');
+                  }}
+                >
+                  <span>•</span>
+                  <span>Personal Information</span>
+                </button>
+                <button 
+                  className="dropdown-submenu-item" 
+                  onClick={() => {
+                    setShowProfileModal(true);
+                    setActiveTab('password');
+                  }}
+                >
+                  <span>•</span>
+                  <span>Change Password</span>
+                </button>
               </div>
+            )}
+          </div>
+        </nav>
 
-              <h3 className="font-bold text-gray-900 text-lg">{user.name || user.nom}</h3>
-              <p className="text-gray-500 text-sm mb-6">@{user.alias}</p>
+        <button className="logout-btn" onClick={handleLogout}>
+          <span>🚪</span>
+          <span>Logout</span>
+        </button>
+      </aside>
 
-              <button 
-                onClick={() => setShowProfileModal(true)}
-                className="w-full bg-blue-500 text-white font-semibold py-2 rounded-full hover:bg-blue-600 transition">
-                Mon Profil
-              </button>
-            </div>
-          </aside>
+      {/* Main Content */}
+      <div className="main-container">
+        {/* Hero Section */}
+        <section className="hero-section">
+          <div className="hero-content">
+            <h1 className="hero-title">Share Your Ideas. Inspire the World.</h1>
+            <p className="hero-subtitle">Post your ideas, discover others, and connect with creative minds.</p>
+          </div>
+        </section>
 
-          {/* Centre - Contenu Futur */}
-          <main className="lg:col-span-2">
-            <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
-              <p className="text-2xl font-bold text-gray-900 mb-2">📝 Contenu futur</p>
-              <p className="text-gray-500">La section de publication d'idées sera disponible très bientôt !</p>
-            </div>
-          </main>
-
-          {/* Sidebar Droit */}
-          <aside className="hidden lg:block lg:col-span-1">
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 sticky top-24">
-              <p className="text-gray-500 text-sm text-center">Contenu futur</p>
-            </div>
-          </aside>
-        </div>
+        {/* Main Content */}
+        <main className="main-content">
+          <div style={{ background: 'white', padding: '3rem', borderRadius: '12px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+            <h2 style={{ fontSize: '1.8rem', marginBottom: '1rem', color: '#333' }}>🚀 Contenu à venir</h2>
+            <p style={{ color: '#666', fontSize: '1.1rem' }}>La section de publication d'idées sera disponible très bientôt !</p>
+          </div>
+        </main>
       </div>
 
       {/* Profile Modal */}
-      {showProfileModal && !showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-800">
-            <div className="sticky top-0 bg-gray-900 border-b border-gray-800 p-6 flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-white">Profile</h1>
-                <p className="text-gray-400 text-sm">Consultez vos informations de profil ici.</p>
-              </div>
-              <button
-                onClick={() => setShowProfileModal(false)}
-                className="text-3xl text-gray-400 hover:text-white cursor-pointer"
-              >
-                ✕
-              </button>
+      {showProfileModal && (
+        <div className="modal-overlay" onClick={() => setShowProfileModal(false)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2 className="modal-title">Profile Settings</h2>
+              <button className="modal-close" onClick={() => setShowProfileModal(false)}>✕</button>
             </div>
 
-            <div className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                {/* Left Column - User Info */}
-                <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8">
-                  <div className="flex flex-col items-center mb-6">
-                    <div className="w-32 h-32 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-5xl border-4 border-gray-700 mb-6 overflow-hidden">
-                      {user.profilePhoto ? (
-                        <img src={user.profilePhoto} alt={user.alias} className="w-full h-full object-cover" />
-                      ) : (
-                        (user.name || user.nom || '?').charAt(0).toUpperCase()
-                      )}
-                    </div>
-                    <h2 className="text-2xl font-bold text-white text-center">{user.name || user.nom}</h2>
-                    <p className="text-green-400 text-sm mb-4">Premium User</p>
-                  </div>
-
-                  <div className="space-y-4 mb-6">
-                    <div className="flex items-start gap-3">
-                      <span className="text-gray-400">@</span>
-                      <div>
-                        <p className="text-xs text-gray-500">Alias</p>
-                        <p className="text-white font-medium">@{user.alias}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <span className="text-gray-400">📧</span>
-                      <div>
-                        <p className="text-xs text-gray-500">Email</p>
-                        <p className="text-white font-medium break-all">{user.email}</p>
-                      </div>
-                    </div>
-                    {user.dateOfBirth && (
-                      <div className="flex items-start gap-3">
-                        <span className="text-gray-400">🎂</span>
-                        <div>
-                          <p className="text-xs text-gray-500">Date de naissance</p>
-                          <p className="text-white font-medium">
-                            {new Date(user.dateOfBirth).toLocaleDateString('fr-FR', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {user.address && (
-                      <div className="flex items-start gap-3">
-                        <span className="text-gray-400">📍</span>
-                        <div>
-                          <p className="text-xs text-gray-500">Adresse</p>
-                          <p className="text-white font-medium">{user.address}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => setShowEditModal(true)}
-                    className="w-full bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 transition mb-3"
-                  >
-                    ✏️ Modifier mes informations
-                  </button>
-
-                  <button
-                    onClick={handleLogout}
-                    className="w-full bg-red-600 text-white font-semibold py-3 rounded-lg hover:bg-red-700 transition"
-                  >
-                    🚪 Déconnexion
-                  </button>
-                </div>
-
-                {/* Right Column - Contenu Futur */}
-                <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8 flex items-center justify-center">
-                  <p className="text-gray-400 text-center">Contenu futur</p>
-                </div>
-              </div>
-
-              {/* Contenu Futur Section */}
-              <div className="bg-gray-800 border border-gray-700 rounded-2xl p-8">
-                <h3 className="text-2xl font-bold text-white mb-6">📊 Contenu futur</h3>
-                <p className="text-gray-400 text-center py-8">Les statistiques et autres informations seront affichées ici prochainement.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Profile Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-800">
-            <div className="sticky top-0 bg-gray-900 border-b border-gray-800 p-6 flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-white">Modifier le profil</h1>
-                <p className="text-gray-400 text-sm">Mettez à jour vos informations</p>
-              </div>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="text-3xl text-gray-400 hover:text-white cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-8">
-              <div className="flex gap-4 mb-8 border-b border-gray-700">
-                <button
+            <div className="modal-body">
+              <div className="modal-tabs">
+                <button 
+                  className={`modal-tab ${activeTab === 'info' ? 'active' : ''}`}
                   onClick={() => {
                     setActiveTab('info');
                     setError('');
                     setSuccess('');
                   }}
-                  className={`px-4 py-2 font-semibold transition ${
-                    activeTab === 'info'
-                      ? 'text-blue-400 border-b-2 border-blue-400'
-                      : 'text-gray-400 hover:text-gray-300'
-                  }`}
                 >
-                  Informations personnelles
+                  Personal Information
                 </button>
-                <button
+                <button 
+                  className={`modal-tab ${activeTab === 'password' ? 'active' : ''}`}
                   onClick={() => {
                     setActiveTab('password');
                     setError('');
                     setSuccess('');
                   }}
-                  className={`px-4 py-2 font-semibold transition ${
-                    activeTab === 'password'
-                      ? 'text-blue-400 border-b-2 border-blue-400'
-                      : 'text-gray-400 hover:text-gray-300'
-                  }`}
                 >
-                  Mot de passe
+                  Change Password
                 </button>
               </div>
 
-              {error && (
-                <div className="p-4 bg-red-900 border border-red-600 text-red-200 rounded-lg mb-4">
-                  {error}
-                </div>
-              )}
-              {success && (
-                <div className="p-4 bg-green-900 border border-green-600 text-green-200 rounded-lg mb-4">
-                  {success}
-                </div>
-              )}
+              {error && <div className="alert alert-error">{error}</div>}
+              {success && <div className="alert alert-success">{success}</div>}
 
               {activeTab === 'info' && (
-                <div className="space-y-6">
-                  <div>
-                    <label htmlFor="profilePhoto" className="block text-sm font-semibold text-gray-300 mb-2">
-                      Photo de profil
-                    </label>
-                    <div className="flex items-center gap-4">
-                      <div className="w-24 h-24 bg-gradient-to-br from-purple-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-3xl border-4 border-gray-700 flex-shrink-0">
+                <div>
+                  <div className="form-group">
+                    <label className="form-label">Profile Photo</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div className="profile-photo-preview">
                         {editData.profilePhoto ? (
-                          <img src={editData.profilePhoto} alt="Preview" className="w-full h-full rounded-full object-cover" />
+                          <img src={editData.profilePhoto} alt="Preview" />
                         ) : (
-                          (user.name || user.nom || '?').charAt(0).toUpperCase()
+                          user.name.charAt(0).toUpperCase()
                         )}
                       </div>
                       <input
-                        id="profilePhoto"
                         type="file"
                         accept="image/*"
                         onChange={handlePhotoChange}
-                        className="flex-1 p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm cursor-pointer"
+                        className="form-input"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-semibold text-gray-300 mb-2">
-                      Nom complet
-                    </label>
+                  <div className="form-group">
+                    <label htmlFor="name" className="form-label">Full Name</label>
                     <input
                       id="name"
                       type="text"
                       value={editData.name}
                       onChange={handleInfoChange}
-                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="form-input"
                     />
                   </div>
 
-                  <div>
-                    <label htmlFor="alias" className="block text-sm font-semibold text-gray-300 mb-2">
-                      Alias (nom d'utilisateur)
-                    </label>
+                  <div className="form-group">
+                    <label htmlFor="alias" className="form-label">Username (Alias)</label>
                     <input
                       id="alias"
                       type="text"
                       value={editData.alias}
                       onChange={handleInfoChange}
-                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="form-input"
                     />
                   </div>
 
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-semibold text-gray-300 mb-2">
-                      Email
-                    </label>
+                  <div className="form-group">
+                    <label htmlFor="email" className="form-label">Email</label>
                     <input
                       id="email"
                       type="email"
                       value={editData.email}
                       onChange={handleInfoChange}
-                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="form-input"
                     />
                   </div>
 
-                  <div>
-                    <label htmlFor="dateOfBirth" className="block text-sm font-semibold text-gray-300 mb-2">
-                      Date de naissance
-                    </label>
+                  <div className="form-group">
+                    <label htmlFor="dateOfBirth" className="form-label">Date of Birth</label>
                     <input
                       id="dateOfBirth"
                       type="date"
                       value={editData.dateOfBirth}
                       onChange={handleInfoChange}
-                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="form-input"
                     />
                   </div>
 
-                  <div>
-                    <label htmlFor="address" className="block text-sm font-semibold text-gray-300 mb-2">
-                      Adresse
-                    </label>
+                  <div className="form-group">
+                    <label htmlFor="address" className="form-label">Address</label>
                     <textarea
                       id="address"
                       value={editData.address}
                       onChange={handleInfoChange}
                       rows="3"
-                      className="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      className="form-input"
                     />
                   </div>
 
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      onClick={handleSaveInfo}
-                      disabled={loading}
-                      className="flex-1 bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loading ? 'Sauvegarde...' : '✓ Enregistrer les modifications'}
+                  <div className="form-actions">
+                    <button onClick={handleSaveInfo} disabled={loading} className="btn btn-primary">
+                      {loading ? '⏳ Saving...' : '✓ Save Changes'}
                     </button>
-                    <button
-                      onClick={() => setShowEditModal(false)}
-                      className="flex-1 bg-gray-700 text-white font-semibold py-3 rounded-lg hover:bg-gray-600 transition"
-                    >
-                      Annuler
+                    <button onClick={() => setShowProfileModal(false)} className="btn btn-secondary">
+                      Cancel
                     </button>
                   </div>
                 </div>
               )}
 
               {activeTab === 'password' && (
-                <div className="space-y-6">
-                  <div>
-                    <label htmlFor="oldPassword" className="block text-sm font-semibold text-gray-300 mb-2">
-                      Ancien mot de passe
-                    </label>
-                    <div className="relative">
+                <div>
+                  <div className="form-group">
+                    <label htmlFor="oldPassword" className="form-label">Current Password</label>
+                    <div className="password-input-wrapper">
                       <input
                         id="oldPassword"
                         type={passwordData.showOld ? 'text' : 'password'}
                         value={passwordData.oldPassword}
                         onChange={handlePasswordChange}
-                        className="w-full p-3 pr-10 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="form-input"
                       />
                       <button
                         type="button"
                         onClick={() => setPasswordData({ ...passwordData, showOld: !passwordData.showOld })}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                        className="toggle-password"
                       >
                         {passwordData.showOld ? '👁️' : '👁️‍🗨️'}
                       </button>
                     </div>
                   </div>
 
-                  <div>
-                    <label htmlFor="newPassword" className="block text-sm font-semibold text-gray-300 mb-2">
-                      Nouveau mot de passe
-                    </label>
-                    <div className="relative">
+                  <div className="form-group">
+                    <label htmlFor="newPassword" className="form-label">New Password</label>
+                    <div className="password-input-wrapper">
                       <input
                         id="newPassword"
                         type={passwordData.showNew ? 'text' : 'password'}
                         value={passwordData.newPassword}
                         onChange={handlePasswordChange}
-                        className="w-full p-3 pr-10 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="form-input"
                       />
                       <button
                         type="button"
                         onClick={() => setPasswordData({ ...passwordData, showNew: !passwordData.showNew })}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                        className="toggle-password"
                       >
                         {passwordData.showNew ? '👁️' : '👁️‍🗨️'}
                       </button>
                     </div>
                   </div>
 
-                  <div>
-                    <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-300 mb-2">
-                      Confirmer le nouveau mot de passe
-                    </label>
-                    <div className="relative">
+                  <div className="form-group">
+                    <label htmlFor="confirmPassword" className="form-label">Confirm New Password</label>
+                    <div className="password-input-wrapper">
                       <input
                         id="confirmPassword"
                         type={passwordData.showConfirm ? 'text' : 'password'}
                         value={passwordData.confirmPassword}
                         onChange={handlePasswordChange}
-                        className="w-full p-3 pr-10 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="form-input"
                       />
                       <button
                         type="button"
                         onClick={() => setPasswordData({ ...passwordData, showConfirm: !passwordData.showConfirm })}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                        className="toggle-password"
                       >
                         {passwordData.showConfirm ? '👁️' : '👁️‍🗨️'}
                       </button>
                     </div>
                   </div>
 
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      onClick={handleChangePassword}
-                      disabled={loading}
-                      className="flex-1 bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {loading ? 'Changement...' : '✓ Changer le mot de passe'}
+                  <div className="form-actions">
+                    <button onClick={handleChangePassword} disabled={loading} className="btn btn-primary">
+                      {loading ? '⏳ Updating...' : '✓ Update Password'}
                     </button>
-                    <button
-                      onClick={() => setShowEditModal(false)}
-                      className="flex-1 bg-gray-700 text-white font-semibold py-3 rounded-lg hover:bg-gray-600 transition"
-                    >
-                      Annuler
+                    <button onClick={() => setShowProfileModal(false)} className="btn btn-secondary">
+                      Cancel
                     </button>
                   </div>
                 </div>

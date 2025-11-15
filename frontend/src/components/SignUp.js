@@ -6,6 +6,7 @@ const SignUp = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ const SignUp = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
     // Validation côté client
@@ -57,10 +59,13 @@ const SignUp = () => {
       });
 
       console.log("✅ Utilisateur créé :", data);
+      setSuccess("Inscription réussie ! Redirection vers la page de connexion...");
       setLoading(false);
       
-      // Redirection vers la page de connexion après inscription réussie
-      navigate('/signin');
+      // Redirection vers la page de connexion après inscription réussie (avec délai)
+      setTimeout(() => {
+        navigate('/signin');
+      }, 3000);
 
     } catch (err) {
       console.error('❌ Erreur inscription:', err);
@@ -166,6 +171,8 @@ const SignUp = () => {
                   value={formData.dateOfBirth}
                   onChange={handleChange}
                   disabled={loading}
+                  min="1965-01-01"
+                  max="2010-12-31"
                   className="w-full p-2 bg-transparent border-b-2 border-gray-200 focus:outline-none focus:border-gray-800 transition-colors disabled:opacity-50"
                 />
               </div>
@@ -230,6 +237,13 @@ const SignUp = () => {
               {error && (
                 <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-center font-semibold text-sm">
                   {error}
+                </div>
+              )}
+
+              {/* Message de succès */}
+              {success && (
+                <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-center font-semibold text-sm">
+                  {success}
                 </div>
               )}
 

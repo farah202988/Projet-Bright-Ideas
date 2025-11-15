@@ -15,14 +15,16 @@ const API_BASE_URL = 'http://localhost:5000/api/auth';
  * @param {string} userData.confirmPassword - Confirmation du mot de passe
  * @returns {Promise<Object>} Réponse du serveur avec les données utilisateur
  */
+////////////////PARTIE MTA SIGNUP
 export const signupUser = async (userData) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/signup`, {
-      method: 'POST',
+    // 📤 ENVOI des données au backend
+    const response = await fetch(`http://localhost:5000/api/auth/signup`, {
+      method: 'POST',                    // ← Méthode POST (créer une ressource)
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json', // ← Format JSON
       },
-      credentials: 'include', // Important pour les cookies JWT
+      credentials: 'include',            // ← Envoie les cookies JWT
       body: JSON.stringify({
         name: userData.name,
         alias: userData.alias,
@@ -36,12 +38,12 @@ export const signupUser = async (userData) => {
 
     const data = await response.json();
 
-    // Si la réponse n'est pas OK, lancer une erreur avec le message du serveur
+    // ✅ Si réponse n'est pas OK, lancer erreur
     if (!response.ok) {
       throw new Error(data.message || 'Erreur lors de l\'inscription');
     }
 
-    return data;
+    return data; // ← Retour au composant SignUp
   } catch (error) {
     console.error('❌ Erreur API signup:', error);
     throw error;

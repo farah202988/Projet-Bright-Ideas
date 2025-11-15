@@ -5,6 +5,7 @@ const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -15,6 +16,7 @@ const SignIn = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     setLoading(true);
 
     try {
@@ -33,20 +35,25 @@ const SignIn = () => {
         throw new Error(data.message || "Erreur de connexion");
       }
 
-      setLoading(false);
-      console.log("✅ Connexion réussie !", data);
-
       // Stocker les infos utilisateur dans localStorage
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      // 🎯 REDIRECTION BASÉE SUR LE RÔLE
+      // 🎯 Message de succès basé sur le rôle
       if (data.user.role === 'admin') {
+        setSuccess("Connexion réussie ! Redirection vers le Dashboard Admin...");
         console.log("🔐 Redirection vers Admin Dashboard");
-        navigate("/admin");
+        setTimeout(() => {
+          navigate("/admin");
+        }, 2000);
       } else {
+        setSuccess("Connexion réussie ! Redirection vers la page d'accueil...");
         console.log("👤 Redirection vers Accueil");
-        navigate("/accueil");
+        setTimeout(() => {
+          navigate("/accueil");
+        }, 3000);
       }
+
+      setLoading(false);
 
     } catch (err) {
       console.error("❌ Erreur:", err);
@@ -116,12 +123,24 @@ const SignIn = () => {
                 </div>
               </div>
 
+              {/* Message d'erreur */}
+              {error && (
+                <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-center font-semibold text-sm">
+                  {error}
+                </div>
+              )}
+
+              {/* Message de succès */}
+              {success && (
+                <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-center font-semibold text-sm">
+                  {success}
+                </div>
+              )}
+
               <button type="submit" className="w-full py-3 bg-gray-900 text-white font-bold rounded-lg hover:bg-gray-800 transition-colors mt-8 disabled:opacity-70" disabled={loading}>
                 {loading ? "Signing In..." : "Sign In"}
               </button>
             </form>
-
-            {error && <p className="text-red-600 text-sm text-center mt-4">{error}</p>}
 
             <p className="text-center text-sm text-gray-500 mt-8">
               Don't have an account?
