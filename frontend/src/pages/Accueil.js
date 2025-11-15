@@ -107,7 +107,7 @@ const Acceuil = () => {
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setSuccess('Informations mises à jour avec succès !');
       setLoading(false);
-      setTimeout(() => setShowProfileModal(false), 1000);
+      // setTimeout(() => setShowProfileModal(false), 1000); // Commenté pour laisser la modal ouverte après succès
     } catch (err) {
       setError(err.message || "Erreur lors de la mise à jour");
       setLoading(false);
@@ -135,7 +135,7 @@ const Acceuil = () => {
       setSuccess('Mot de passe changé avec succès !');
       setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '', showOld: false, showNew: false, showConfirm: false });
       setLoading(false);
-      setTimeout(() => setShowProfileModal(false), 1000);
+      // setTimeout(() => setShowProfileModal(false), 1000); // Commenté pour laisser la modal ouverte après succès
     } catch (err) {
       setError(err.message || "Erreur lors du changement de mot de passe");
       setLoading(false);
@@ -153,6 +153,7 @@ const Acceuil = () => {
     <div className="app-root">
       <div className="bg-hero" aria-hidden="true" style={{ backgroundImage: `url(${bgImage})` }} />
 
+      {/* SIDEBAR GAUCHE (Navigation) */}
       <aside className="sidebar" aria-label="Navigation">
         <div className="sidebar-top">
           <div className="sidebar-brand">💡 Bright Ideas</div>
@@ -211,7 +212,8 @@ const Acceuil = () => {
         </div>
       </aside>
 
-      <div className="main-container">
+      {/* CONTENEUR PRINCIPAL (Contenu central) */}
+      <div className="main-content-wrapper">
         <section className="hero-section glass-hero hero-improved" role="banner" aria-label="Page header">
           <div className="hero-left hero-left-improved">
             <h1 className="hero-title hero-title-improved">Share Your Ideas. Inspire the World.</h1>
@@ -228,119 +230,154 @@ const Acceuil = () => {
         </main>
       </div>
 
-      {/* modal (inchangé) */}
+      {/* SIDEBAR DROITE (Contenu futur) */}
+      <aside className="right-sidebar" aria-label="Future Content">
+        <div className="sidebar-panel">
+          <h3 className="sidebar-title">Contenus Futurs</h3>
+          <p className="sidebar-text">Cette section est réservée aux statistiques, aux amis, aux tendances, ou à d'autres informations contextuelles.</p>
+          <div className="future-content-placeholder">
+            <p>Statistiques</p>
+            <p>Amis en ligne</p>
+            <p>Tendances</p>
+          </div>
+        </div>
+      </aside>
+
+      {/* MODAL (inchangée) */}
       {showProfileModal && (
         <div className="modal-overlay" onClick={() => setShowProfileModal(false)}>
-          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-container modal-profile-improved" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">Profile Settings</h2>
               <button className="modal-close" onClick={() => setShowProfileModal(false)}>✕</button>
             </div>
 
-            <div className="modal-body">
-              <div className="modal-tabs">
-                <button className={`modal-tab ${activeTab === 'info' ? 'active' : ''}`} onClick={() => { setActiveTab('info'); setError(''); setSuccess(''); }}>Personal Information</button>
-                <button className={`modal-tab ${activeTab === 'password' ? 'active' : ''}`} onClick={() => { setActiveTab('password'); setError(''); setSuccess(''); }}>Change Password</button>
+            <div className="modal-body modal-body-improved">
+              
+              {/* Nouvelle structure de navigation latérale */}
+              <div className="profile-nav-sidebar">
+                <button 
+                  className={`profile-nav-item ${activeTab === 'info' ? 'active' : ''}`} 
+                  onClick={() => { setActiveTab('info'); setError(''); setSuccess(''); }}
+                >
+                  <span className="icon">👤</span> Personal Information
+                </button>
+                <button 
+                  className={`profile-nav-item ${activeTab === 'password' ? 'active' : ''}`} 
+                  onClick={() => { setActiveTab('password'); setError(''); setSuccess(''); }}
+                >
+                  <span className="icon">🔒</span> Change Password
+                </button>
               </div>
 
-              {error && <div className="alert alert-error">{error}</div>}
-              {success && <div className="alert alert-success">{success}</div>}
+              <div className="profile-content-area">
+                {error && <div className="alert alert-error">{error}</div>}
+                {success && <div className="alert alert-success">{success}</div>}
 
-              {activeTab === 'info' && (
-                <div>
-                  <div className="profile-photo-section">
-                    <div className="profile-photo-preview">
-                      {editData.profilePhoto ? <img src={editData.profilePhoto} alt="Preview" /> : userInitial}
-                    </div>
-                    <div className="photo-upload-wrapper">
-                      <label htmlFor="photo-upload" className="photo-upload-label">
-                        📷 Choose Photo
-                      </label>
-                      <input 
-                        id="photo-upload"
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handlePhotoChange} 
-                        className="photo-upload-input" 
-                      />
-                      <span className="photo-upload-hint">JPG, PNG or GIF (Max 5MB)</span>
-                    </div>
-                  </div>
+                {activeTab === 'info' && (
+                  <div className="tab-content-info">
+                    <h3 className="content-title">Update Your Personal Details</h3>
+                    <p className="content-subtitle">Review and update your profile information. This will be visible to other users.</p>
 
-                  <div className="form-row">
+                    <div className="profile-photo-section">
+                      <div className="profile-photo-preview">
+                        {editData.profilePhoto ? <img src={editData.profilePhoto} alt="Preview" /> : userInitial}
+                      </div>
+                      <div className="photo-upload-wrapper">
+                        <label htmlFor="photo-upload" className="photo-upload-label">
+                          📷 Choose Photo
+                        </label>
+                        <input 
+                          id="photo-upload"
+                          type="file" 
+                          accept="image/*" 
+                          onChange={handlePhotoChange} 
+                          className="photo-upload-input" 
+                        />
+                        <span className="photo-upload-hint">JPG, PNG or GIF (Max 5MB)</span>
+                      </div>
+                    </div>
+
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label htmlFor="name" className="form-label">👤 Full Name</label>
+                        <input id="name" type="text" value={editData.name} onChange={handleInfoChange} className="form-input" placeholder="Enter your full name" />
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="alias" className="form-label">✨ Username (Alias)</label>
+                        <input id="alias" type="text" value={editData.alias} onChange={handleInfoChange} className="form-input" placeholder="Your unique username" />
+                      </div>
+                    </div>
+
+                    <div className="form-grid-2">
+                      <div className="form-group">
+                        <label htmlFor="email" className="form-label">📧 Email Address</label>
+                        <input id="email" type="email" value={editData.email} onChange={handleInfoChange} className="form-input" placeholder="Your email address" />
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="dateOfBirth" className="form-label">🎂 Date of Birth</label>
+                        <input 
+                          id="dateOfBirth" 
+                          type="date" 
+                          value={editData.dateOfBirth} 
+                          onChange={handleInfoChange} 
+                          className="form-input"
+                          min="1965-01-01"
+                          max="2010-12-31"
+                        />
+                      </div>
+                    </div>
+
                     <div className="form-group">
-                      <label htmlFor="name" className="form-label">👤 Full Name</label>
-                      <input id="name" type="text" value={editData.name} onChange={handleInfoChange} className="form-input" placeholder="Enter your full name" />
+                      <label htmlFor="address" className="form-label">🏠 Address</label>
+                      <textarea id="address" value={editData.address} onChange={handleInfoChange} rows="3" className="form-input" placeholder="Enter your full address" />
+                    </div>
+
+                    <div className="form-actions">
+                      <button onClick={handleSaveInfo} disabled={loading} className="btn btn-primary">{loading ? '⏳ Saving...' : '✓ Save Changes'}</button>
+                      <button onClick={() => setShowProfileModal(false)} className="btn btn-secondary">Cancel</button>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'password' && (
+                  <div className="tab-content-password">
+                    <h3 className="content-title">Change Your Password</h3>
+                    <p className="content-subtitle">Use a strong password that you haven't used before.</p>
+
+                    <div className="form-group">
+                      <label htmlFor="oldPassword" className="form-label">Current Password</label>
+                      <div className="password-input-wrapper">
+                        <input id="oldPassword" type={passwordData.showOld ? 'text' : 'password'} value={passwordData.oldPassword} onChange={handlePasswordChange} className="form-input" />
+                        <button type="button" onClick={() => setPasswordData({ ...passwordData, showOld: !passwordData.showOld })} className="toggle-password">{passwordData.showOld ? '👁️' : '👁️‍🗨️'}</button>
+                      </div>
                     </div>
 
                     <div className="form-group">
-                      <label htmlFor="alias" className="form-label">✨ Username (Alias)</label>
-                      <input id="alias" type="text" value={editData.alias} onChange={handleInfoChange} className="form-input" placeholder="Your unique username" />
+                      <label htmlFor="newPassword" className="form-label">New Password</label>
+                      <div className="password-input-wrapper">
+                        <input id="newPassword" type={passwordData.showNew ? 'text' : 'password'} value={passwordData.newPassword} onChange={handlePasswordChange} className="form-input" />
+                        <button type="button" onClick={() => setPasswordData({ ...passwordData, showNew: !passwordData.showNew })} className="toggle-password">{passwordData.showNew ? '👁️' : '👁️‍🗨️'}</button>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="confirmPassword" className="form-label">Confirm New Password</label>
+                      <div className="password-input-wrapper">
+                        <input id="confirmPassword" type={passwordData.showConfirm ? 'text' : 'password'} value={passwordData.confirmPassword} onChange={handlePasswordChange} className="form-input" />
+                        <button type="button" onClick={() => setPasswordData({ ...passwordData, showConfirm: !passwordData.showConfirm })} className="toggle-password">{passwordData.showConfirm ? '👁️' : '👁️‍🗨️'}</button>
+                      </div>
+                    </div>
+
+                    <div className="form-actions">
+                      <button onClick={handleChangePassword} disabled={loading} className="btn btn-primary">{loading ? '⏳ Updating...' : '✓ Update Password'}</button>
+                      <button onClick={() => setShowProfileModal(false)} className="btn btn-secondary">Cancel</button>
                     </div>
                   </div>
-
-                  <div className="form-group">
-                    <label htmlFor="email" className="form-label">📧 Email Address</label>
-                    <input id="email" type="email" value={editData.email} onChange={handleInfoChange} className="form-input" placeholder="your.email@example.com" />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="dateOfBirth" className="form-label">🎂 Date of Birth</label>
-                    <input 
-                      id="dateOfBirth" 
-                      type="date" 
-                      value={editData.dateOfBirth} 
-                      onChange={handleInfoChange} 
-                      className="form-input"
-                      min="1965-01-01"
-                      max="2010-12-31"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="address" className="form-label">🏠 Address</label>
-                    <textarea id="address" value={editData.address} onChange={handleInfoChange} rows="3" className="form-input" placeholder="Enter your full address" />
-                  </div>
-
-                  <div className="form-actions">
-                    <button onClick={handleSaveInfo} disabled={loading} className="btn btn-primary">{loading ? '⏳ Saving...' : '✓ Save Changes'}</button>
-                    <button onClick={() => setShowProfileModal(false)} className="btn btn-secondary">Cancel</button>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'password' && (
-                <div>
-                  <div className="form-group">
-                    <label htmlFor="oldPassword" className="form-label">Current Password</label>
-                    <div className="password-input-wrapper">
-                      <input id="oldPassword" type={passwordData.showOld ? 'text' : 'password'} value={passwordData.oldPassword} onChange={handlePasswordChange} className="form-input" />
-                      <button type="button" onClick={() => setPasswordData({ ...passwordData, showOld: !passwordData.showOld })} className="toggle-password">{passwordData.showOld ? '👁️' : '👁️‍🗨️'}</button>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="newPassword" className="form-label">New Password</label>
-                    <div className="password-input-wrapper">
-                      <input id="newPassword" type={passwordData.showNew ? 'text' : 'password'} value={passwordData.newPassword} onChange={handlePasswordChange} className="form-input" />
-                      <button type="button" onClick={() => setPasswordData({ ...passwordData, showNew: !passwordData.showNew })} className="toggle-password">{passwordData.showNew ? '👁️' : '👁️‍🗨️'}</button>
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="confirmPassword" className="form-label">Confirm New Password</label>
-                    <div className="password-input-wrapper">
-                      <input id="confirmPassword" type={passwordData.showConfirm ? 'text' : 'password'} value={passwordData.confirmPassword} onChange={handlePasswordChange} className="form-input" />
-                      <button type="button" onClick={() => setPasswordData({ ...passwordData, showConfirm: !passwordData.showConfirm })} className="toggle-password">{passwordData.showConfirm ? '👁️' : '👁️‍🗨️'}</button>
-                    </div>
-                  </div>
-
-                  <div className="form-actions">
-                    <button onClick={handleChangePassword} disabled={loading} className="btn btn-primary">{loading ? '⏳ Updating...' : '✓ Update Password'}</button>
-                    <button onClick={() => setShowProfileModal(false)} className="btn btn-secondary">Cancel</button>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
