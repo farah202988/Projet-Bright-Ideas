@@ -155,15 +155,19 @@ const Acceuil = () => {
 
       <aside className="sidebar" aria-label="Navigation">
         <div className="sidebar-top">
-          <div className="sidebar-brand">Bright Ideas</div>
+          <div className="sidebar-brand">💡 Bright Ideas</div>
+          
+          {/* Section de profil modernisée */}
           <div
-            className="sidebar-profile"
+            className="sidebar-profile-section"
             onClick={() => { setShowProfileModal(true); setActiveTab('info'); }}
             role="button" tabIndex={0} aria-label="Edit profile"
           >
-            {profilePhotoSrc ? <img src={profilePhotoSrc} alt="profile" className="sidebar-avatar" /> : <div className="sidebar-avatar-initial">{userInitial}</div>}
+            {profilePhotoSrc ? 
+              <img src={profilePhotoSrc} alt="profile" className="sidebar-avatar" /> : 
+              <div className="sidebar-avatar-initial">{userInitial}</div>
+            }
             <div className="sidebar-username">{user.alias || user.name}</div>
-            <button className="edit-profile-link" aria-label="Edit profile">Edit profile</button>
           </div>
         </div>
 
@@ -174,19 +178,30 @@ const Acceuil = () => {
 
           <div
             className="nav-item profile-item"
-            onClick={() => { setShowProfileModal(true); setActiveTab('info'); }}
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              setShowDropdown(!showDropdown); 
+            }}
             role="button" tabIndex={0}
             aria-expanded={showDropdown}
             aria-controls="profile-submenu"
           >
             Profile
-            <span className={`dropdown-arrow-sidebar ${showDropdown ? 'open' : ''}`} onClick={(e) => { e.stopPropagation(); setShowDropdown(!showDropdown); }}>▼</span>
+            <span className={`dropdown-arrow-sidebar ${showDropdown ? 'open' : ''}`}>▼</span>
           </div>
 
           {showDropdown && (
             <div className="dropdown-submenu" id="profile-submenu">
-              <button className="dropdown-submenu-item" onClick={() => { setShowProfileModal(true); setActiveTab('info'); }}>Personal Information</button>
-              <button className="dropdown-submenu-item" onClick={() => { setShowProfileModal(true); setActiveTab('password'); }}>Change Password</button>
+              <button className="dropdown-submenu-item" onClick={() => { 
+                setShowProfileModal(true); 
+                setActiveTab('info'); 
+                setShowDropdown(false);
+              }}>Personal Information</button>
+              <button className="dropdown-submenu-item" onClick={() => { 
+                setShowProfileModal(true); 
+                setActiveTab('password'); 
+                setShowDropdown(false);
+              }}>Change Password</button>
             </div>
           )}
         </nav>
@@ -197,18 +212,11 @@ const Acceuil = () => {
       </aside>
 
       <div className="main-container">
-        {/* header clairement modifié : glass sombre + titre large + pill accent */}
         <section className="hero-section glass-hero hero-improved" role="banner" aria-label="Page header">
           <div className="hero-left hero-left-improved">
             <h1 className="hero-title hero-title-improved">Share Your Ideas. Inspire the World.</h1>
             <div className="hero-accent" aria-hidden="true" />
             <p className="hero-subtitle hero-subtitle-improved">Post your ideas, discover others, and connect with creative minds.</p>
-          </div>
-
-          <div className="hero-side-actions" aria-hidden="true">
-            <div className="avatar-small" title={user.name}>
-              {profilePhotoSrc ? <img src={profilePhotoSrc} alt="avatar" /> : <div className="avatar-initial">{userInitial}</div>}
-            </div>
           </div>
         </section>
 
@@ -240,39 +248,58 @@ const Acceuil = () => {
 
               {activeTab === 'info' && (
                 <div>
-                  <div className="form-group">
-                    <label className="form-label">Profile Photo</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div className="profile-photo-preview">
-                        {editData.profilePhoto ? <img src={editData.profilePhoto} alt="Preview" /> : user.name.charAt(0).toUpperCase()}
-                      </div>
-                      <input type="file" accept="image/*" onChange={handlePhotoChange} className="form-input" />
+                  <div className="profile-photo-section">
+                    <div className="profile-photo-preview">
+                      {editData.profilePhoto ? <img src={editData.profilePhoto} alt="Preview" /> : userInitial}
+                    </div>
+                    <div className="photo-upload-wrapper">
+                      <label htmlFor="photo-upload" className="photo-upload-label">
+                        📷 Choose Photo
+                      </label>
+                      <input 
+                        id="photo-upload"
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handlePhotoChange} 
+                        className="photo-upload-input" 
+                      />
+                      <span className="photo-upload-hint">JPG, PNG or GIF (Max 5MB)</span>
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="name" className="form-label">👤 Full Name</label>
+                      <input id="name" type="text" value={editData.name} onChange={handleInfoChange} className="form-input" placeholder="Enter your full name" />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="alias" className="form-label">✨ Username (Alias)</label>
+                      <input id="alias" type="text" value={editData.alias} onChange={handleInfoChange} className="form-input" placeholder="Your unique username" />
                     </div>
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="name" className="form-label">Full Name</label>
-                    <input id="name" type="text" value={editData.name} onChange={handleInfoChange} className="form-input" />
+                    <label htmlFor="email" className="form-label">📧 Email Address</label>
+                    <input id="email" type="email" value={editData.email} onChange={handleInfoChange} className="form-input" placeholder="your.email@example.com" />
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="alias" className="form-label">Username (Alias)</label>
-                    <input id="alias" type="text" value={editData.alias} onChange={handleInfoChange} className="form-input" />
+                    <label htmlFor="dateOfBirth" className="form-label">🎂 Date of Birth</label>
+                    <input 
+                      id="dateOfBirth" 
+                      type="date" 
+                      value={editData.dateOfBirth} 
+                      onChange={handleInfoChange} 
+                      className="form-input"
+                      min="1965-01-01"
+                      max="2010-12-31"
+                    />
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="email" className="form-label">Email</label>
-                    <input id="email" type="email" value={editData.email} onChange={handleInfoChange} className="form-input" />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="dateOfBirth" className="form-label">Date of Birth</label>
-                    <input id="dateOfBirth" type="date" value={editData.dateOfBirth} onChange={handleInfoChange} className="form-input" />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="address" className="form-label">Address</label>
-                    <textarea id="address" value={editData.address} onChange={handleInfoChange} rows="3" className="form-input" />
+                    <label htmlFor="address" className="form-label">🏠 Address</label>
+                    <textarea id="address" value={editData.address} onChange={handleInfoChange} rows="3" className="form-input" placeholder="Enter your full address" />
                   </div>
 
                   <div className="form-actions">
